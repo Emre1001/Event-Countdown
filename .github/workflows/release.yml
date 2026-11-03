@@ -33,7 +33,10 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
             echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           else
-            echo "::warning::Kein Secret KEYSTORE_BASE64 – APK wird mit einem temporären Schlüssel signiert. In-App-Updates auf spätere Versionen brauchen einen festen Schlüssel (siehe README)."
+            # Ohne festen Schlüssel ließe sich die nächste Version nicht über diese installieren:
+            # Android würde das Update ablehnen und man müsste neu installieren (Widgets weg).
+            echo "::error::Secret KEYSTORE_BASE64 fehlt. Releases brauchen einen festen Signaturschlüssel, damit Updates Widgets und Daten behalten (siehe README)."
+            exit 1
           fi
 
       - name: Build release APK
