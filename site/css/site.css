@@ -1,0 +1,176 @@
+/* Event Countdown – Website. Tokens 1:1 aus der App (ui/Theme.kt), dann die Signatur: der Live-Countdown. */
+:root, :root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f6f4; --surface: #ffffff; --inset: #ebebe8; --border: rgb(0 0 0 / 0.08);
+  --text: #1a1a1c; --text-muted: #626268; --accent: #3d5a80; --accent-contrast: #ffffff;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 10px 28px -14px rgb(0 0 0 / 0.16);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e0e11; --surface: #16161a; --inset: #242428; --border: rgb(255 255 255 / 0.10);
+  --text: #ededef; --text-muted: #9a9aa2; --accent: #7d9cc4; --accent-contrast: #101114;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 30px -16px rgb(0 0 0 / 0.7);
+}
+:root {
+  /* Bewegung wie in der App (RollingNumber.kt) */
+  --emph-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --emph-acc: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --radius-l: 26px;
+  /* Die Karte und das "Hintergrundbild" aus dem Editor der App */
+  --card-bg: #0b0b0f; --card-text: #ffffff; --card-accent: #7d9cc4;
+  --wallpaper: linear-gradient(135deg, #2b2d42, #4a4e69 55%, #9a8c98);
+}
+@font-face { font-family: "Countdown Digits"; src: url("../fonts/inter-digits-300.woff2") format("woff2"); font-weight: 300; font-display: swap; }
+
+.brand-mark { width: 28px; height: 28px; border-radius: 8px; }
+.lang-trigger { padding-inline: 14px; }
+
+/* ---------- Hero ---------- */
+.hero { padding-block: clamp(28px, 6vw, 80px) clamp(40px, 7vw, 88px); }
+.hero__grid { display: grid; gap: clamp(40px, 6vw, 72px); align-items: center; }
+@media (min-width: 900px) { .hero__grid { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); } }
+.hero__eyebrow { margin-bottom: 20px; }
+.hero__title { font-size: clamp(2.6rem, 1.2rem + 5.6vw, 5.6rem); letter-spacing: -0.05em; line-height: 0.98; max-width: 12ch; }
+.hero__lead { margin-top: clamp(20px, 3vw, 28px); }
+.hero__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(28px, 4vw, 40px); }
+.hero__note { margin-top: 18px; font-size: 0.9rem; min-height: 1.4em; }
+.hero__phone { justify-self: center; width: min(72vw, 330px); }
+
+@keyframes into-focus { from { opacity: 0; filter: blur(16px); transform: translateY(0.12em); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.hero__eyebrow { animation: rise 800ms var(--ease-out) 60ms both; }
+.hero__title { animation: into-focus 1200ms var(--ease-out) 120ms both; }
+.hero__lead { animation: rise 900ms var(--ease-out) 380ms both; }
+.hero__actions { animation: rise 900ms var(--ease-out) 480ms both; }
+.hero__note { animation: rise 900ms var(--ease-out) 560ms both; }
+.hero__phone { animation: rise 1100ms var(--ease-out) 260ms both; }
+
+/* ---------- Telefon-Rahmen für echte Screenshots ---------- */
+.phone { position: relative; margin: 0; aspect-ratio: 800 / 1647; overflow: hidden; border-radius: 38px; background: #0e0e11;
+  border: 1px solid var(--border); box-shadow: 0 0 0 6px color-mix(in srgb, var(--text) 8%, transparent), 0 40px 80px -36px rgb(0 0 0 / 0.55), 0 14px 28px -16px rgb(0 0 0 / 0.3); }
+.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+/* ---------- Signatur: Live-Countdown ---------- */
+.demo { padding-top: clamp(24px, 5vw, 64px); }
+.demo__grid { display: grid; gap: clamp(28px, 5vw, 64px); align-items: center; }
+@media (min-width: 960px) { .demo__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+.demo__copy .section-title { margin-bottom: 20px; }
+.demo__stage { display: grid; gap: 16px; padding: clamp(12px, 2.4vw, 18px); border-radius: 32px; background: var(--wallpaper); }
+
+.card { min-width: 0; padding: clamp(20px, 3.6vw, 28px) clamp(20px, 4vw, 30px); border-radius: var(--radius-l); color: var(--card-text);
+  background: var(--card-bg); border: 1px solid rgb(255 255 255 / 0.07); box-shadow: 0 24px 48px -28px rgb(0 0 0 / 0.7); color-scheme: dark; }
+.card__head { display: grid; gap: 2px; }
+.card__title, .card__date input {
+  width: 100%; min-width: 0; margin: 0; padding: 4px 6px; margin-inline-start: -6px; font: inherit; color: var(--card-accent);
+  background: transparent; border: 0; border-radius: 8px; transition: background-color var(--dur-base) var(--ease-out);
+}
+.card__title { font-size: 1.1rem; font-weight: 650; letter-spacing: -0.01em; }
+.card__date input { font-size: 0.95rem; opacity: 0.8; min-height: 40px; font-variant-numeric: tabular-nums; }
+.card__title:hover, .card__date input:hover { background: rgb(255 255 255 / 0.05); }
+.card__title:focus-visible, .card__date input:focus-visible { outline: 2px solid var(--card-accent); outline-offset: 0; background: rgb(255 255 255 / 0.06); }
+.card__title::placeholder { color: color-mix(in srgb, var(--card-accent) 60%, transparent); }
+.card__state { margin-top: 10px; min-height: 1.4em; font-size: 0.85rem; color: rgb(255 255 255 / 0.55); }
+
+.count { display: flex; flex-wrap: wrap; gap: 0.1em clamp(14px, 3.4vw, 30px); margin-top: clamp(18px, 3vw, 26px); font-size: clamp(2.6rem, 1.4rem + 5vw, 5.2rem); }
+.unit { display: grid; justify-items: start; }
+.num { display: flex; font-family: "Countdown Digits", ui-sans-serif, system-ui, sans-serif; font-weight: 300; line-height: 1.12; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.lbl { font-size: max(0.8rem, 0.24em); font-weight: 650; color: var(--card-accent); margin-top: 2px; }
+
+/* Jede Ziffer ist ein Fach; die Platzhalter-Null gibt die Breite vor, die echten Ziffern liegen absolut darüber. */
+.d { position: relative; display: inline-block; }
+.d .ph { visibility: hidden; }
+.d .g { position: absolute; inset: 0; display: grid; place-items: center; will-change: transform, opacity; }
+
+/* Nach oben / Von oben: weiche Maske wie in der App, Ziffern rollen statt hart zu springen */
+.card[data-anim="up"] .d, .card[data-anim="down"] .d {
+  -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent); mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent); }
+.card[data-anim="up"] .g.in { animation: in-from-below 620ms var(--emph-dec) both; }
+.card[data-anim="up"] .g.out { animation: out-to-top 460ms var(--emph-acc) forwards; }
+.card[data-anim="down"] .g.in { animation: in-from-top 620ms var(--emph-dec) both; }
+.card[data-anim="down"] .g.out { animation: out-to-bottom 460ms var(--emph-acc) forwards; }
+@keyframes in-from-below { from { transform: translateY(100%) scale(0.82); opacity: 0; } 12% { opacity: 0; } }
+@keyframes out-to-top { to { transform: translateY(-100%) scale(0.82); opacity: 0; } }
+@keyframes in-from-top { from { transform: translateY(-100%) scale(0.82); opacity: 0; } 12% { opacity: 0; } }
+@keyframes out-to-bottom { to { transform: translateY(100%) scale(0.82); opacity: 0; } }
+
+/* Überblenden */
+.card[data-anim="fade"] .g.in { animation: fade-in 420ms var(--ease-out) 60ms both; }
+.card[data-anim="fade"] .g.out { animation: fade-out 260ms ease-in forwards; }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+
+/* Klappen: alte Ziffer klappt weg, dann klappt die neue auf (Flip-Board) */
+.card[data-anim="flip"] .d { perspective: 4em; }
+.card[data-anim="flip"] .g.out { animation: flip-out 260ms var(--emph-acc) forwards; }
+.card[data-anim="flip"] .g.in { animation: flip-in 300ms var(--emph-dec) 260ms both; }
+@keyframes flip-out { to { transform: rotateX(-90deg); opacity: 0.6; } }
+@keyframes flip-in { from { transform: rotateX(90deg); opacity: 0.6; } }
+
+/* Schmelzen: die alte Ziffer zerfließt nach unten, die neue formt sich daraus – mit Goo-Filter wie in der App */
+.card[data-anim="melt"] .d.melting { filter: url(#goo); }
+.card[data-anim="melt"] .g.out { transform-origin: 50% 100%; animation: melt-out 820ms cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.card[data-anim="melt"] .g.in { transform-origin: 50% 0%; animation: melt-in 820ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+@keyframes melt-out { to { transform: scale(1.18, 0.45); opacity: 0; } }
+@keyframes melt-in { from { transform: translateY(-12%) scale(0.85, 1.35); opacity: 0; } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 44px; padding: 0 18px; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; color: rgb(255 255 255 / 0.86);
+  background: rgb(14 14 17 / 0.42); border: 1px solid rgb(255 255 255 / 0.14); border-radius: 999px; touch-action: manipulation;
+  transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out); }
+.chip:hover { background: rgb(14 14 17 / 0.6); }
+.chip:active { transform: scale(0.96); }
+.chip[aria-checked="true"] { color: #101114; background: #7d9cc4; border-color: transparent; }
+.chip:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ---------- Story mit Telefonen ---------- */
+.story__grid { display: grid; gap: clamp(24px, 4vw, 56px); align-items: center; }
+@media (min-width: 900px) { .story__grid { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); } }
+.story__copy { margin: 20px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.story__copy li { padding: 16px 0 16px 20px; border-inline-start: 2px solid var(--border); transition: opacity var(--dur-slow) var(--ease-out), border-color var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out); }
+.story__copy h2 { font-size: var(--fs-h3); margin-bottom: 8px; }
+.story[data-pinned="true"] .story__copy li { opacity: 0.32; }
+.story[data-pinned="true"][data-step="0"] [data-step-copy="0"], .story[data-pinned="true"][data-step="1"] [data-step-copy="1"], .story[data-pinned="true"][data-step="2"] [data-step-copy="2"] { opacity: 1; border-color: var(--accent); transform: translateX(6px); }
+.story__phones { position: relative; width: min(100%, 320px); margin-inline: auto; aspect-ratio: 800 / 1647; max-height: calc(100svh - 140px); }
+.story[data-pinned="true"] .story__phones { width: auto; height: min(calc(100svh - 140px), 660px); }
+.story[data-pinned="true"] .layer { position: absolute; inset: 0; opacity: 0; transform: translateY(26px) scale(0.985); transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out); }
+.story[data-pinned="true"][data-step="0"] .layer--0, .story[data-pinned="true"][data-step="1"] .layer--1, .story[data-pinned="true"][data-step="2"] .layer--2 { opacity: 1; transform: none; }
+.story[data-pinned="false"] .story__phones, .story:not([data-pinned]) .story__phones { aspect-ratio: auto; max-height: none; display: grid; gap: 28px; }
+.story:not([data-pinned]) { height: auto; }
+.story:not([data-pinned]) .story__sticky { position: static; height: auto; padding-block: var(--section-y) 0; }
+
+/* ---------- Abschnitte ---------- */
+.section-title { font-size: var(--fs-h2); letter-spacing: -0.045em; margin-bottom: clamp(28px, 5vw, 56px); max-width: 15ch; }
+.section--tint { background: color-mix(in srgb, var(--inset) 52%, var(--bg)); border-block: 1px solid var(--border); }
+.download__head .section-title { margin-bottom: 20px; }
+.download__head .lead { margin-bottom: clamp(24px, 4vw, 40px); }
+.release-line { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-inline-start: 6px; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.release-line a { display: inline-flex; align-items: center; min-height: 44px; text-underline-offset: 3px; }
+.platforms--one { grid-template-columns: minmax(0, 420px); }
+.download__extra { display: grid; gap: clamp(32px, 5vw, 64px); margin-top: clamp(40px, 6vw, 72px); }
+@media (min-width: 900px) { .download__extra { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); align-items: start; } }
+.qr-box { display: none; }
+@media (pointer: fine) and (min-width: 900px) { .qr-box { display: grid; gap: 16px; justify-items: start; } }
+.qr { display: block; width: 165px; height: 165px; color: var(--text); }
+.qr svg { width: 100%; height: 100%; }
+.faq__title { font-size: 1rem; margin-bottom: 8px; color: var(--text-muted); letter-spacing: 0; font-weight: 600; }
+.faq-wrap .faq { max-width: 52em; }
+.faq summary { min-height: 56px; }
+
+/* Rechtliche Seiten */
+.legal { padding-block: clamp(40px, 8vw, 96px); }
+.legal h1 { font-size: var(--fs-h2); letter-spacing: -0.04em; margin-bottom: 32px; }
+.legal h2 { font-size: var(--fs-h3); margin: 36px 0 10px; }
+.legal p, .legal li { color: var(--text-muted); max-width: 44em; }
+.legal p + p { margin-top: 0.8em; }
+.ph-note { padding: 14px 18px; border-radius: var(--radius-m); background: color-mix(in srgb, #e5837a 16%, var(--surface)); color: var(--text); margin-bottom: 28px; }
+
+/* Kopfzeile auf schmalen Handys: Name in einer Zeile, Sprache nur als Globus (Name steckt im aria-label) */
+.brand { white-space: nowrap; overflow-wrap: normal; }
+.lang-trigger { white-space: nowrap; overflow-wrap: normal; }
+@media (max-width: 560px) {
+  .lang-trigger [data-lang-current] { display: none; }
+  .lang-trigger { padding-inline: 12px; }
+}
+@media (max-width: 340px) { .brand { font-size: 1rem; gap: 8px; } }
+.site-header .lang-trigger { min-height: 48px; min-width: 48px; }
+.card__title, .card__date input { min-height: 44px; }

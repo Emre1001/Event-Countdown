@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <style>.bg{fill:#0b0b0f}.ring{stroke:#7d9cc4}.hand{stroke:#fff}@media (prefers-color-scheme: light){.bg{fill:#16161a}}</style>
+  <rect class="bg" width="108" height="108" rx="26"/>
+  <path class="ring" d="M54 26a28 28 0 1 1-28 28" fill="none" stroke-width="7" stroke-linecap="round"/>
+  <path class="hand" d="M54 54V38M54 54l10 7" fill="none" stroke-width="7" stroke-linecap="round"/>
+</svg>
