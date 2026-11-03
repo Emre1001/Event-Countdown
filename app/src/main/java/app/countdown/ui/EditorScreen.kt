@@ -1,10 +1,13 @@
 package app.countdown.ui
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -54,8 +58,10 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,7 +76,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -79,16 +87,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import app.countdown.R
+import app.countdown.data.EventShare
+import app.countdown.data.Reminders
 import app.countdown.model.Align
 import app.countdown.model.CountdownEvent
 import app.countdown.model.CountdownUnit
+import app.countdown.model.DigitAnimation
+import app.countdown.model.Element
 import app.countdown.model.ElementType
+import app.countdown.model.EventMode
 import app.countdown.model.EventStyle
-import app.countdown.model.StickerShape
+import app.countdown.model.Photo
+import app.countdown.model.Repeat
 import app.countdown.model.WeightChoice
 import app.countdown.model.WidgetFormat
 import app.countdown.model.WidgetLayout
+import app.countdown.render.Fonts
 import app.countdown.render.ImageStore
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -105,8 +121,7 @@ private fun newEvent() = CountdownEvent(
         .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
 )
 
-private const val PICK_BACKGROUND = 0
-private const val PICK_STICKER = 1
+private const val PICK_BACKGROUND = -1
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -114,9 +129,11 @@ fun EditorScreen(
     initial: CountdownEvent?,
     onSave: (CountdownEvent) -> Unit,
     onDelete: ((String) -> Unit)?,
+    onDuplicate: ((CountdownEvent) -> Unit)?,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
+    val activity = LocalView.current.context
     val scope = rememberCoroutineScope()
     val original = remember(initial?.id) { initial ?: newEvent() }
     var draft by remember(initial?.id) { mutableStateOf(original) }
@@ -124,7 +141,7 @@ fun EditorScreen(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var format by remember { mutableStateOf(WidgetFormat.SQUARE) }
     var selected by remember { mutableStateOf<ElementType?>(ElementType.COUNTDOWN) }
-    var showDate by remember { mutableStateOf(false) }
+    var dateFor by remember { mutableIntStateOf(-1) } // 0 = Termin, 1 = Fortschritt ab
     var showTime by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
     var showDiscard by remember { mutableStateOf(false) }
@@ -141,8 +158,9 @@ fun EditorScreen(
 
     val close = { cleanup(null); onClose() }
     val requestClose = { if (dirty) showDiscard = true else close() }
+    fun finished() = draft.copy(title = draft.title.trim(), note = draft.note.trim(), targetMillis = CountdownEvent.normalize(draft.targetMillis))
     val save = {
-        val e = draft.copy(title = draft.title.trim(), targetMillis = CountdownEvent.normalize(draft.targetMillis))
+        val e = finished()
         cleanup(e)
         onSave(e)
     }
@@ -153,23 +171,30 @@ fun EditorScreen(
         if (uri != null) scope.launch {
             val name = ImageStore.import(context, uri) ?: return@launch
             imported += name
-            if (pickTarget == PICK_BACKGROUND) {
+            val target = pickTarget
+            if (target == PICK_BACKGROUND) {
                 style { it.copy(image = name) }
             } else {
+                val type = ElementType.photos[target]
                 style { s ->
-                    s.copy(
-                        sticker = name,
-                        square = s.square.with(ElementType.STICKER, s.square.sticker.copy(visible = true)),
-                        wide = s.wide.with(ElementType.STICKER, s.wide.sticker.copy(visible = true)),
-                    )
+                    var st = s.withPhoto(target, (s.photo(target) ?: Photo(name)).copy(image = name))
+                    for (f in WidgetFormat.entries) st = st.withLayout(f, st.layout(f).with(type, st.layout(f)[type].copy(visible = true)))
+                    st
                 }
-                selected = ElementType.STICKER
+                selected = type
             }
         }
     }
     fun pick(target: Int) {
         pickTarget = target
         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+    val notifyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) draft = draft.copy(reminder = true)
+    }
+    val setReminder: (Boolean) -> Unit = { on ->
+        if (on && Build.VERSION.SDK_INT >= 33 && !Reminders.canNotify(context)) notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        else draft = draft.copy(reminder = on)
     }
 
     // Kleine/Querformat-Fenster und offene Tastatur: Vorschau nicht fest anheften, sonst bleibt kaum Platz.
@@ -180,9 +205,7 @@ fun EditorScreen(
 
     val preview: @Composable () -> Unit = {
         if (tab == 0) {
-            Box(
-                Modifier.fillMaxWidth().background(WallpaperBrush, RoundedCornerShape(32.dp)).padding(14.dp),
-            ) { EventCard(draft) }
+            Box(Modifier.fillMaxWidth().background(WallpaperBrush, RoundedCornerShape(32.dp)).padding(14.dp)) { EventCard(draft) }
         } else {
             WidgetDesigner(
                 event = draft,
@@ -205,6 +228,9 @@ fun EditorScreen(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium,
                 )
+                IconButton(onClick = {
+                    scope.launch { runCatching { activity.startActivity(EventShare.shareIntent(context, finished())) } }
+                }) { Icon(Icons.Filled.Share, stringResource(R.string.share)) }
                 TextButton(onClick = save) { Text(stringResource(R.string.done), fontWeight = FontWeight.SemiBold) }
             }
             SegmentedControl(
@@ -234,21 +260,20 @@ fun EditorScreen(
                         when (t) {
                             0 -> EventTab(
                                 draft,
-                                onTitle = { draft = draft.copy(title = it.take(40)) },
-                                onUnits = { draft = draft.copy(units = it) },
-                                onDate = { showDate = true },
+                                onChange = { draft = it },
+                                onDate = { dateFor = 0 },
+                                onStart = { dateFor = 1 },
                                 onTime = { showTime = true },
+                                onReminder = setReminder,
                                 onDone = { focusManager.clearFocus() },
                             )
                             1 -> StyleTab(draft.style, ::style, onPickBackground = { pick(PICK_BACKGROUND) })
                             else -> WidgetTab(
-                                draft.style,
-                                format,
-                                selected,
+                                draft.style, format, selected,
                                 onFormat = { format = it },
                                 onSelect = { selected = it },
                                 onStyle = ::style,
-                                onPickSticker = { pick(PICK_STICKER) },
+                                onPickPhoto = { pick(it) },
                             )
                         }
                     }
@@ -260,10 +285,15 @@ fun EditorScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                 )
-                if (onDelete != null && initial != null) {
-                    TextButton(onClick = { showDelete = true }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                        Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error)
-                        Text("  " + stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    if (onDuplicate != null && initial != null) {
+                        TextButton(onClick = { onDuplicate(finished()) }) { Text(stringResource(R.string.duplicate)) }
+                    }
+                    if (onDelete != null && initial != null) {
+                        TextButton(onClick = { showDelete = true }) {
+                            Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error)
+                            Text("  " + stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
                 Spacer(Modifier.height(24.dp))
@@ -277,22 +307,22 @@ fun EditorScreen(
         draft = draft.copy(targetMillis = CountdownEvent.normalize(l.atZone(zone).toInstant().toEpochMilli()))
     }
 
-    if (showDate) {
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = ldt.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        )
+    if (dateFor >= 0) {
+        val base = if (dateFor == 0) ldt else Instant.ofEpochMilli(draft.startMillis).atZone(zone).toLocalDateTime()
+        val state = rememberDatePickerState(initialSelectedDateMillis = base.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
         DatePickerDialog(
-            onDismissRequest = { showDate = false },
+            onDismissRequest = { dateFor = -1 },
             confirmButton = {
                 TextButton(onClick = {
                     state.selectedDateMillis?.let { ms ->
                         val d = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate()
-                        setDateTime(LocalDateTime.of(d, ldt.toLocalTime()))
+                        if (dateFor == 0) setDateTime(LocalDateTime.of(d, ldt.toLocalTime()))
+                        else draft = draft.copy(startMillis = d.atStartOfDay(zone).toInstant().toEpochMilli())
                     }
-                    showDate = false
+                    dateFor = -1
                 }) { Text(stringResource(R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = { dateFor = -1 }) { Text(stringResource(R.string.cancel)) } },
         ) { DatePicker(state) }
     }
 
@@ -300,10 +330,7 @@ fun EditorScreen(
         val state = rememberTimePickerState(ldt.hour, ldt.minute, is24Hour = true)
         Dialog(onDismissRequest = { showTime = false }) {
             Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                Column(
-                    Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
+                Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     if (config.screenHeightDp < 520) TimeInput(state) else TimePicker(state)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showTime = false }) { Text(stringResource(R.string.cancel)) }
@@ -323,9 +350,7 @@ fun EditorScreen(
             title = { Text(stringResource(R.string.discard_title)) },
             text = { Text(stringResource(R.string.discard_body)) },
             confirmButton = {
-                TextButton(onClick = { showDiscard = false; close() }) {
-                    Text(stringResource(R.string.discard), color = MaterialTheme.colorScheme.error)
-                }
+                TextButton(onClick = { showDiscard = false; close() }) { Text(stringResource(R.string.discard), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(R.string.keep_editing)) } },
         )
@@ -348,25 +373,12 @@ fun EditorScreen(
     }
 }
 
-// --- Tab "Event" -------------------------------------------------------------------------------
-
 @Composable
-private fun EventTab(
-    draft: CountdownEvent,
-    onTitle: (String) -> Unit,
-    onUnits: (Set<CountdownUnit>) -> Unit,
-    onDate: () -> Unit,
-    onTime: () -> Unit,
-    onDone: () -> Unit,
-) {
-    val config = LocalConfiguration.current
-    val locale = config.locales[0]
-    val ldt = Instant.ofEpochMilli(draft.targetMillis).atZone(ZoneId.systemDefault()).toLocalDateTime()
-
+private fun plainField(value: String, hint: String, onChange: (String) -> Unit, onDone: () -> Unit) {
     TextField(
-        value = draft.title,
-        onValueChange = onTitle,
-        placeholder = { Text(stringResource(R.string.field_title_hint)) },
+        value = value,
+        onValueChange = onChange,
+        placeholder = { Text(hint) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
@@ -380,25 +392,88 @@ private fun EventTab(
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
     )
+}
+
+// --- Tab "Event" -------------------------------------------------------------------------------
+
+@Composable
+private fun EventTab(
+    draft: CountdownEvent,
+    onChange: (CountdownEvent) -> Unit,
+    onDate: () -> Unit,
+    onStart: () -> Unit,
+    onTime: () -> Unit,
+    onReminder: (Boolean) -> Unit,
+    onDone: () -> Unit,
+) {
+    val config = LocalConfiguration.current
+    val locale = config.locales[0]
+    val zone = ZoneId.systemDefault()
+    val ldt = Instant.ofEpochMilli(draft.targetMillis).atZone(zone).toLocalDateTime()
+    val since = draft.mode == EventMode.SINCE
+
+    SegmentedControl(
+        listOf(stringResource(R.string.mode_countdown), stringResource(R.string.mode_since)),
+        if (since) 1 else 0,
+        height = 40.dp,
+    ) { i, _ ->
+        val mode = if (i == 1) EventMode.SINCE else EventMode.COUNTDOWN
+        if (mode != draft.mode) {
+            // Beim Wechsel sinnvolle Einheiten vorschlagen: "seit" eher in Jahren, Monaten, Tagen.
+            val units = if (mode == EventMode.SINCE) setOf(CountdownUnit.YEARS, CountdownUnit.MONTHS, CountdownUnit.DAYS) else draft.units
+            onChange(draft.copy(mode = mode, units = units, repeat = if (mode == EventMode.SINCE) Repeat.NONE else draft.repeat))
+        }
+    }
+    Text(
+        stringResource(if (since) R.string.mode_since_hint else R.string.mode_countdown_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
+
+    plainField(draft.title, stringResource(if (since) R.string.field_title_hint_since else R.string.field_title_hint), { onChange(draft.copy(title = it.take(40))) }, onDone)
+    plainField(draft.note, stringResource(R.string.field_note_hint), { onChange(draft.copy(note = it.take(60))) }, onDone)
 
     Group {
-        ValueRow(stringResource(R.string.field_date), DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(ldt), onDate)
+        ValueRow(
+            stringResource(if (since) R.string.field_since else R.string.field_date),
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(ldt), onDate,
+        )
         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
         ValueRow(stringResource(R.string.field_time), DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(ldt), onTime)
+        if (!since) {
+            HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            ValueRow(
+                stringResource(R.string.field_progress_start),
+                DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(Instant.ofEpochMilli(draft.startMillis).atZone(zone)),
+                onStart,
+            )
+        }
+    }
+
+    if (!since) {
+        SectionTitle(stringResource(R.string.section_repeat), Modifier.padding(top = 6.dp))
+        SegmentedControl(
+            listOf(stringResource(R.string.repeat_none), stringResource(R.string.repeat_yearly), stringResource(R.string.repeat_monthly), stringResource(R.string.repeat_weekly)),
+            Repeat.entries.indexOf(draft.repeat),
+            height = 40.dp,
+        ) { i, _ -> onChange(draft.copy(repeat = Repeat.entries[i])) }
     }
 
     Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         SectionTitle(stringResource(R.string.section_display), Modifier.weight(1f))
-        TextButton(onClick = { onUnits(CountdownUnit.entries.toSet()) }) { Text(stringResource(R.string.select_all)) }
+        TextButton(onClick = { onChange(draft.copy(units = CountdownUnit.entries.toSet())) }) { Text(stringResource(R.string.select_all)) }
     }
     val unitLabels = listOf(
+        CountdownUnit.YEARS to R.plurals.unit_years,
+        CountdownUnit.MONTHS to R.plurals.unit_months,
+        CountdownUnit.WEEKS to R.plurals.unit_weeks,
         CountdownUnit.DAYS to R.plurals.unit_days,
         CountdownUnit.HOURS to R.plurals.unit_hours,
         CountdownUnit.MINUTES to R.plurals.unit_minutes,
         CountdownUnit.SECONDS to R.plurals.unit_seconds,
     )
     val res = LocalContext.current.resources
-    // Bei großer Schrift 2 × 2 statt 4 in einer Reihe, damit nichts abgeschnitten wird.
     val perRow = if (config.fontScale > 1.25f || config.screenWidthDp < 340) 2 else 4
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         unitLabels.chunked(perRow).forEach { rowItems ->
@@ -406,9 +481,10 @@ private fun EventTab(
                 rowItems.forEach { (unit, plural) ->
                     UnitToggle(res.getQuantityString(plural, 2), unit in draft.units, Modifier.weight(1f)) {
                         val next = if (unit in draft.units) draft.units - unit else draft.units + unit
-                        if (next.isNotEmpty()) onUnits(next)
+                        if (next.isNotEmpty()) onChange(draft.copy(units = next))
                     }
                 }
+                repeat(perRow - rowItems.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -419,6 +495,11 @@ private fun EventTab(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
+    }
+    if (!since) {
+        Group(padding = 12.dp) {
+            SwitchRow(stringResource(R.string.reminder_switch), draft.reminder, onReminder)
+        }
     }
 }
 
@@ -438,29 +519,73 @@ private fun StyleTab(style: EventStyle, update: ((EventStyle) -> EventStyle) -> 
         Spacer(Modifier.height(12.dp))
         ImageRow(stringResource(R.string.background_image), style.image, onPickBackground) { update { it.copy(image = null) } }
         if (style.image != null) {
-            SliderRow(stringResource(R.string.image_dim), style.imageDim, 0f..0.8f, "${(style.imageDim * 100).roundToInt()} %") { v ->
-                update { it.copy(imageDim = v) }
-            }
+            SliderRow(stringResource(R.string.image_blur), style.imageBlur, 0f..40f, "${style.imageBlur.roundToInt()}") { v -> update { it.copy(imageBlur = v) } }
+            SliderRow(stringResource(R.string.image_dim), style.imageDim, 0f..0.8f, "${(style.imageDim * 100).roundToInt()} %") { v -> update { it.copy(imageDim = v) } }
         }
-        SliderRow(stringResource(R.string.opacity), style.backgroundAlpha, 0f..1f, "${(style.backgroundAlpha * 100).roundToInt()} %") { v ->
-            update { it.copy(backgroundAlpha = v) }
+        SliderRow(stringResource(R.string.opacity), style.backgroundAlpha, 0f..1f, "${(style.backgroundAlpha * 100).roundToInt()} %") { v -> update { it.copy(backgroundAlpha = v) } }
+        SliderRow(stringResource(R.string.card_inset), style.cardInset, 0f..0.2f, "${(style.cardInset * 100).roundToInt()} %") { v -> update { it.copy(cardInset = v) } }
+        Text(
+            stringResource(R.string.card_inset_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+    }
+
+    Group(padding = 16.dp) {
+        SliderRow(stringResource(R.string.border_width), style.borderWidth, 0f..8f, "${"%.1f".format(style.borderWidth)} dp") { v -> update { it.copy(borderWidth = (v * 2).roundToInt() / 2f) } }
+        AnimatedVisibility(style.borderWidth > 0f) {
+            FillEditor(stringResource(R.string.border_color), style.border) { f -> update { it.copy(border = f) } }
         }
     }
 
     Group(padding = 16.dp) {
         FillEditor(stringResource(R.string.color_numbers), style.numbers) { f -> update { it.copy(numbers = f) } }
-    }
-    Group(padding = 16.dp) {
-        FillEditor(stringResource(R.string.color_accent), style.accent) { f -> update { it.copy(accent = f) } }
+        Spacer(Modifier.height(12.dp))
+        Text(stringResource(R.string.number_font), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+        Spacer(Modifier.height(6.dp))
+        FontPicker(style.numberFont, allowSame = true) { f -> update { it.copy(numberFont = f) } }
+        Spacer(Modifier.height(10.dp))
+        WeightControl(stringResource(R.string.weight_numbers), style.numberWeight) { w -> update { it.copy(numberWeight = w) } }
     }
 
     Group(padding = 16.dp) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.section_font), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 4.dp))
-            FontPicker(style.font) { f -> update { it.copy(font = f) } }
-            WeightControl(stringResource(R.string.weight_numbers), style.numberWeight) { w -> update { it.copy(numberWeight = w) } }
-            WeightControl(stringResource(R.string.weight_text), style.textWeight) { w -> update { it.copy(textWeight = w) } }
+        FillEditor(stringResource(R.string.color_accent), style.accent) { f -> update { it.copy(accent = f) } }
+        Spacer(Modifier.height(12.dp))
+        Text(stringResource(R.string.section_font), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+        Spacer(Modifier.height(6.dp))
+        FontPicker(style.font) { f -> if (f != null) update { it.copy(font = f) } }
+        Spacer(Modifier.height(10.dp))
+        WeightControl(stringResource(R.string.weight_text), style.textWeight) { w -> update { it.copy(textWeight = w) } }
+    }
+
+    Group(padding = 16.dp) {
+        Text(stringResource(R.string.section_effects), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 4.dp))
+        val fx = style.effects
+        SliderRow(stringResource(R.string.outline), fx.outlineWidth, 0f..4f, "${"%.1f".format(fx.outlineWidth)}") { v ->
+            update { it.copy(effects = it.effects.copy(outlineWidth = (v * 4).roundToInt() / 4f)) }
         }
+        AnimatedVisibility(fx.outlineWidth > 0f) {
+            ColorRow(stringResource(R.string.outline_color), fx.outlineColor) { c -> update { it.copy(effects = it.effects.copy(outlineColor = c)) } }
+        }
+        SwitchRow(stringResource(R.string.shadow), fx.shadow) { on -> update { it.copy(effects = it.effects.copy(shadow = on)) } }
+        AnimatedVisibility(fx.shadow) {
+            Column {
+                SliderRow(stringResource(R.string.shadow_blur), fx.shadowBlur, 1f..20f, "${fx.shadowBlur.roundToInt()}") { v -> update { it.copy(effects = it.effects.copy(shadowBlur = v)) } }
+                ColorRow(stringResource(R.string.shadow_color), fx.shadowColor or 0xFF000000.toInt()) { c ->
+                    update { it.copy(effects = it.effects.copy(shadowColor = (c and 0x00FFFFFF) or (0x99 shl 24))) }
+                }
+            }
+        }
+    }
+
+    Group(padding = 16.dp) {
+        Text(stringResource(R.string.section_animation), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 4.dp))
+        Spacer(Modifier.height(8.dp))
+        val anims = DigitAnimation.entries
+        ChipRow(anims.map { stringResource(animationName(it)) }, anims.indexOf(style.animation)) { i -> update { it.copy(animation = anims[i]) } }
+        Spacer(Modifier.height(10.dp))
+        AnimationDemo(style)
     }
 
     Group(padding = 16.dp) {
@@ -468,6 +593,39 @@ private fun StyleTab(style: EventStyle, update: ((EventStyle) -> EventStyle) -> 
             update { it.copy(cornerRadius = v.roundToInt().toFloat()) }
         }
         SwitchRow(stringResource(R.string.show_labels), style.showLabels) { on -> update { it.copy(showLabels = on) } }
+        SwitchRow(stringResource(R.string.separators), style.separators) { on -> update { it.copy(separators = on) } }
+    }
+}
+
+private fun animationName(a: DigitAnimation) = when (a) {
+    DigitAnimation.ROLL_UP -> R.string.anim_roll_up
+    DigitAnimation.ROLL_DOWN -> R.string.anim_roll_down
+    DigitAnimation.FADE -> R.string.anim_fade
+    DigitAnimation.ZOOM -> R.string.anim_zoom
+    DigitAnimation.FLIP -> R.string.anim_flip
+    DigitAnimation.MELT -> R.string.anim_melt
+    DigitAnimation.NONE -> R.string.anim_none
+}
+
+/** Zählt einmal pro Sekunde, damit man die gewählte Animation sofort sieht. */
+@Composable
+private fun AnimationDemo(style: EventStyle) {
+    var n by remember { mutableLongStateOf(59L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1200)
+            n = if (n <= 0L) 59L else n - 1
+        }
+    }
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(WallpaperBrush).padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        RollingNumber(
+            n, 2,
+            TextStyle(fontSize = 44.sp, fontFamily = Fonts.family(style.digitFont), fontWeight = Fonts.weight(style.numberWeight)),
+            Color.White, style.animation,
+        )
     }
 }
 
@@ -476,12 +634,7 @@ private fun WeightControl(label: String, value: WeightChoice, onChange: (WeightC
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
         SegmentedControl(
-            listOf(
-                stringResource(R.string.weight_light),
-                stringResource(R.string.weight_regular),
-                stringResource(R.string.weight_semibold),
-                stringResource(R.string.weight_bold),
-            ),
+            listOf(stringResource(R.string.weight_light), stringResource(R.string.weight_regular), stringResource(R.string.weight_semibold), stringResource(R.string.weight_bold)),
             WeightChoice.entries.indexOf(value),
             height = 40.dp,
         ) { i, _ -> onChange(WeightChoice.entries[i]) }
@@ -492,9 +645,7 @@ private fun WeightControl(label: String, value: WeightChoice, onChange: (WeightC
 private fun ImageRow(label: String, name: String?, onPick: () -> Unit, onRemove: () -> Unit) {
     val img by rememberStoredImage(name)
     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHighest),
-        ) {
+        Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
             img?.let { Image(it, null, Modifier.size(48.dp), contentScale = ContentScale.Crop) }
         }
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f).padding(start = 12.dp))
@@ -505,6 +656,21 @@ private fun ImageRow(label: String, name: String?, onPick: () -> Unit, onRemove:
 
 // --- Tab "Widget" ------------------------------------------------------------------------------
 
+private val designerElements = listOf(
+    ElementType.TITLE, ElementType.DATE, ElementType.NOTE, ElementType.COUNTDOWN, ElementType.PROGRESS,
+    ElementType.PHOTO1, ElementType.PHOTO2, ElementType.PHOTO3,
+)
+
+@Composable
+private fun elementName(t: ElementType): String = when (t) {
+    ElementType.TITLE -> stringResource(R.string.element_title)
+    ElementType.DATE -> stringResource(R.string.field_date)
+    ElementType.NOTE -> stringResource(R.string.element_note)
+    ElementType.COUNTDOWN -> stringResource(R.string.element_countdown)
+    ElementType.PROGRESS -> stringResource(R.string.element_progress)
+    else -> stringResource(R.string.element_photo_n, t.photoIndex + 1)
+}
+
 @Composable
 private fun WidgetTab(
     style: EventStyle,
@@ -513,13 +679,13 @@ private fun WidgetTab(
     onFormat: (WidgetFormat) -> Unit,
     onSelect: (ElementType?) -> Unit,
     onStyle: ((EventStyle) -> EventStyle) -> Unit,
-    onPickSticker: () -> Unit,
+    onPickPhoto: (Int) -> Unit,
 ) {
     SegmentedControl(
-        listOf(stringResource(R.string.format_square), stringResource(R.string.format_wide)),
-        if (format == WidgetFormat.WIDE) 1 else 0,
+        listOf(stringResource(R.string.format_square), stringResource(R.string.format_wide), stringResource(R.string.format_bar)),
+        WidgetFormat.entries.indexOf(format),
         height = 40.dp,
-    ) { i, _ -> onFormat(if (i == 1) WidgetFormat.WIDE else WidgetFormat.SQUARE) }
+    ) { i, _ -> onFormat(WidgetFormat.entries[i]) }
 
     Text(
         stringResource(R.string.designer_hint),
@@ -528,20 +694,10 @@ private fun WidgetTab(
         modifier = Modifier.padding(horizontal = 4.dp),
     )
 
-    val elements = listOf(ElementType.TITLE, ElementType.DATE, ElementType.COUNTDOWN, ElementType.STICKER)
-    SegmentedControl(
-        listOf(
-            stringResource(R.string.element_title),
-            stringResource(R.string.field_date),
-            stringResource(R.string.element_countdown),
-            stringResource(R.string.element_sticker),
-        ),
-        elements.indexOf(selected),
-        height = 40.dp,
-    ) { i, _ -> onSelect(elements[i]) }
+    ChipRow(designerElements.map { elementName(it) }, designerElements.indexOf(selected)) { i -> onSelect(designerElements[i]) }
 
     val layout = style.layout(format)
-    fun set(t: ElementType, block: (app.countdown.model.Element) -> app.countdown.model.Element) {
+    fun set(t: ElementType, block: (Element) -> Element) {
         onStyle { it.withLayout(format, it.layout(format).with(t, block(it.layout(format)[t]))) }
     }
 
@@ -550,8 +706,12 @@ private fun WidgetTab(
         Group(padding = 16.dp) {
             Column(Modifier.heightIn(min = 48.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SwitchRow(stringResource(R.string.element_visible), e.visible) { on -> set(selected) { it.copy(visible = on) } }
-                SliderRow(stringResource(R.string.element_size), e.scale, 0.4f..2.5f, "${(e.scale * 100).roundToInt()} %") { v ->
-                    set(selected) { it.copy(scale = v) }
+                SliderRow(stringResource(R.string.element_size), e.scale, 0.4f..2.5f, "${(e.scale * 100).roundToInt()} %") { v -> set(selected) { it.copy(scale = v) } }
+                if (selected.rotatable) {
+                    SliderRow(stringResource(R.string.element_rotation), e.rotation, -45f..45f, "${e.rotation.roundToInt()}°") { v ->
+                        val snapped = if (kotlin.math.abs(v) < 2f) 0f else v
+                        set(selected) { it.copy(rotation = snapped) }
+                    }
                 }
                 Text(stringResource(R.string.element_align), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
                 SegmentedControl(
@@ -560,24 +720,46 @@ private fun WidgetTab(
                     height = 40.dp,
                 ) { i, _ ->
                     val a = Align.entries[i]
-                    // Anker passend setzen: links/rechts an den Rand, Mitte genau mittig.
                     val x = when (a) { Align.START -> 0.08f; Align.CENTER -> 0.5f; Align.END -> 0.92f }
                     set(selected) { it.copy(align = a, x = x) }
                 }
-                if (selected == ElementType.STICKER) {
-                    ImageRow(stringResource(R.string.element_sticker), style.sticker, onPickSticker) { onStyle { it.copy(sticker = null) } }
-                    SegmentedControl(
-                        listOf(stringResource(R.string.shape_circle), stringResource(R.string.shape_rounded)),
-                        if (style.stickerShape == StickerShape.CIRCLE) 0 else 1,
-                        height = 40.dp,
-                    ) { i, _ -> onStyle { it.copy(stickerShape = if (i == 0) StickerShape.CIRCLE else StickerShape.ROUNDED) } }
+                if (selected.isPhoto) {
+                    val idx = selected.photoIndex
+                    val photo = style.photo(idx)
+                    SwitchRow(stringResource(R.string.element_on_top), e.onTop) { on -> set(selected) { it.copy(onTop = on) } }
+                    ImageRow(elementName(selected), photo?.image, { onPickPhoto(idx) }) { onStyle { it.withPhoto(idx, null) } }
+                    if (photo != null) {
+                        val cornerLabel = if (photo.corner >= 0.5f) stringResource(R.string.shape_circle) else "${(photo.corner * 200).roundToInt()} %"
+                        SliderRow(stringResource(R.string.photo_corners), photo.corner, 0f..0.5f, cornerLabel) { v ->
+                            onStyle { it.withPhoto(idx, photo.copy(corner = v)) }
+                        }
+                        SliderRow(stringResource(R.string.photo_border), photo.borderWidth, 0f..10f, "${photo.borderWidth.roundToInt()} dp") { v ->
+                            onStyle { it.withPhoto(idx, photo.copy(borderWidth = v.roundToInt().toFloat())) }
+                        }
+                        AnimatedVisibility(photo.borderWidth > 0f) {
+                            FillEditor(stringResource(R.string.border_color), photo.border) { f -> onStyle { it.withPhoto(idx, photo.copy(border = f)) } }
+                        }
+                        SwitchRow(stringResource(R.string.shadow), photo.shadow) { on -> onStyle { it.withPhoto(idx, photo.copy(shadow = on)) } }
+                    }
+                    Text(
+                        stringResource(R.string.photo_overflow_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
                 }
             }
         }
     }
 
     TextButton(
-        onClick = { onStyle { it.withLayout(format, WidgetLayout.default(format).with(ElementType.STICKER, WidgetLayout.default(format).sticker.copy(visible = it.sticker != null))) } },
+        onClick = {
+            onStyle { s ->
+                var l = WidgetLayout.default(format)
+                ElementType.photos.forEach { t -> l = l.with(t, l[t].copy(visible = s.photo(t.photoIndex) != null)) }
+                s.withLayout(format, l)
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
     ) { Text(stringResource(R.string.reset_layout)) }
 }
@@ -585,17 +767,10 @@ private fun WidgetTab(
 @Composable
 private fun UnitToggle(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    val bg by androidx.compose.animation.animateColorAsState(
-        if (selected) scheme.primary else scheme.surfaceContainerHigh, label = "toggleBg",
-    )
-    val fg by androidx.compose.animation.animateColorAsState(
-        if (selected) scheme.onPrimary else scheme.onSurfaceVariant, label = "toggleFg",
-    )
+    val bg by androidx.compose.animation.animateColorAsState(if (selected) scheme.primary else scheme.surfaceContainerHigh, label = "toggleBg")
+    val fg by androidx.compose.animation.animateColorAsState(if (selected) scheme.onPrimary else scheme.onSurfaceVariant, label = "toggleFg")
     Box(
-        modifier
-            .heightIn(min = 48.dp)
-            .pressable(onClick)
-            .background(bg, RoundedCornerShape(16.dp)),
+        modifier.heightIn(min = 48.dp).pressable(onClick).background(bg, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center,
     ) { Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.padding(horizontal = 6.dp)) }
 }

@@ -6,6 +6,9 @@ import android.content.Context
 import android.os.Bundle
 import app.countdown.data.EventRepository
 
+/**
+ * Wichtig: Klassennamen nie ändern – sonst entfernt Android bestehende Widgets beim Update.
+ */
 abstract class BaseWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         EventRepository.init(context)
@@ -29,6 +32,17 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
     }
 }
 
+/** 2×2 */
 class SmallWidgetProvider : BaseWidgetProvider()
 
+/** 4×2 */
 class WideWidgetProvider : BaseWidgetProvider()
+
+/** 4×1 Leiste */
+class BarWidgetProvider : BaseWidgetProvider()
+
+/** 4×4 groß */
+class LargeWidgetProvider : BaseWidgetProvider()
+
+/** Übersicht über alle Events (ohne Auswahl). */
+class OverviewWidgetProvider : BaseWidgetProvider()

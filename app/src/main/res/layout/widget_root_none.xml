@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generiert von tools/gen_widget_res.py. Design als Bild, darüber je Einheit eine animierte Zahl. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="fitXY" />
+
+    <FrameLayout
+        android:id="@+id/u0"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ViewFlipper
+            android:id="@+id/u0_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:measureAllChildren="false">
+
+            <ImageView
+                android:id="@+id/u0_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/u0_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+        </ViewFlipper>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/u1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ViewFlipper
+            android:id="@+id/u1_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:measureAllChildren="false">
+
+            <ImageView
+                android:id="@+id/u1_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/u1_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+        </ViewFlipper>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/u2"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ViewFlipper
+            android:id="@+id/u2_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:measureAllChildren="false">
+
+            <ImageView
+                android:id="@+id/u2_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/u2_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+        </ViewFlipper>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/u3"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ViewFlipper
+            android:id="@+id/u3_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:measureAllChildren="false">
+
+            <ImageView
+                android:id="@+id/u3_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/u3_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+        </ViewFlipper>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/u4"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ViewFlipper
+            android:id="@+id/u4_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:measureAllChildren="false">
+
+            <ImageView
+                android:id="@+id/u4_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/u4_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+        </ViewFlipper>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/u5"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ViewFlipper
+            android:id="@+id/u5_flip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:measureAllChildren="false">
+
+            <ImageView
+                android:id="@+id/u5_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/u5_b"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@null" />
+        </ViewFlipper>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/sec_slot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ImageView
+        android:id="@+id/top"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="fitXY" />
+</FrameLayout>

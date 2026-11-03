@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateRotation
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -71,7 +72,11 @@ fun WidgetDesigner(
     var guideX by remember { mutableStateOf(false) }
     var guideY by remember { mutableStateOf(false) }
     val primary = MaterialTheme.colorScheme.primary
-    val aspect = if (format == WidgetFormat.WIDE) 2.1f else 1f
+    val aspect = when (format) {
+        WidgetFormat.WIDE -> 2.1f
+        WidgetFormat.BAR -> 4.2f
+        WidgetFormat.SQUARE -> 1f
+    }
 
     Box(
         modifier
@@ -81,7 +86,7 @@ fun WidgetDesigner(
         contentAlignment = Alignment.Center,
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            val w = minOf(maxWidth, 172.dp * aspect)
+            val w = minOf(maxWidth, if (format == WidgetFormat.BAR) maxWidth else 172.dp * aspect)
             val h = w / aspect
             val gestures = if (!interactive) Modifier else Modifier.pointerInput(format) {
                 val slack = 10.dp.toPx()
@@ -101,12 +106,15 @@ fun WidgetDesigner(
                     var rawX = start.x
                     var rawY = start.y
                     var scale = start.scale
+                    var rotation = start.rotation
                     while (true) {
                         val ev = awaitPointerEvent()
                         if (ev.changes.none { it.pressed }) break
                         val pan = ev.calculatePan()
                         val zoom = ev.calculateZoom()
-                        if (pan == Offset.Zero && zoom == 1f) continue
+                        val turn = if (hit.rotatable) ev.calculateRotation() else 0f
+                        if (pan == Offset.Zero && zoom == 1f && turn == 0f) continue
+                        rotation = (rotation + turn).coerceIn(-45f, 45f)
                         rawX += pan.x / cw
                         rawY += pan.y / ch
                         scale = (scale * zoom).coerceIn(0.4f, 2.5f)
@@ -137,7 +145,18 @@ fun WidgetDesigner(
                         }
                         guideX = gx
                         guideY = gy
-                        change(hit, start.copy(x = sx.coerceIn(0f, 1f), y = sy.coerceIn(0f, 1f), scale = scale))
+                        // Fotos dürfen über den Rand hinaus, Texte bleiben im Widget.
+                        val loose = hit.isPhoto
+                        val snappedRotation = if (abs(rotation) < 3f) 0f else rotation
+                        change(
+                            hit,
+                            start.copy(
+                                x = if (loose) sx.coerceIn(-0.4f, 1.4f) else sx.coerceIn(0f, 1f),
+                                y = if (loose) sy.coerceIn(-0.4f, 1.4f) else sy.coerceIn(0f, 1f),
+                                scale = scale,
+                                rotation = snappedRotation,
+                            ),
+                        )
                         ev.changes.forEach { it.consume() }
                     }
                     guideX = false
@@ -149,7 +168,7 @@ fun WidgetDesigner(
                 drawIntoCanvas { c ->
                     WidgetPainter.paint(
                         context, c.nativeCanvas, size.width, size.height, event, format, n,
-                        drawSeconds = true, locale = locale, result = result, placeholders = interactive,
+                        locale = locale, result = result, placeholders = interactive,
                     )
                 }
                 if (interactive) {

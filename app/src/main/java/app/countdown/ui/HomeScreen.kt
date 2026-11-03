@@ -15,7 +15,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -36,13 +43,14 @@ import app.countdown.R
 import app.countdown.model.CountdownEvent
 
 @Composable
-fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (CountdownEvent) -> Unit, onSettings: () -> Unit) {
+fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (CountdownEvent) -> Unit, onSettings: () -> Unit, onImport: () -> Unit) {
     val seen = remember { mutableSetOf<String>() }
     // Anstehende Events zuerst (nächstes oben), vergangene danach (jüngstes zuerst).
     val now = System.currentTimeMillis()
     val sorted = remember(events) {
-        val (past, upcoming) = events.partition { it.targetMillis < now }
-        upcoming.sortedBy { it.targetMillis } + past.sortedByDescending { it.targetMillis }
+        // "Seit"-Events und vergangene ans Ende, anstehende nach Datum (Wiederholungen: nächster Termin).
+        val (later, upcoming) = events.partition { it.mode == app.countdown.model.EventMode.SINCE || it.effectiveTarget(now) < now }
+        upcoming.sortedBy { it.effectiveTarget(now) } + later.sortedByDescending { it.targetMillis }
     }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -79,6 +87,13 @@ fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (Countdo
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
+                    var menu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
+                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, shape = RoundedCornerShape(20.dp)) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.import_file)) }, onClick = { menu = false; onImport() })
+                        }
+                    }
                     IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, stringResource(R.string.settings)) }
                 }
             }

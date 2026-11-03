@@ -50,6 +50,7 @@ import app.countdown.R
 import app.countdown.model.EventStyle
 import app.countdown.model.Fill
 import app.countdown.model.FontChoice
+import app.countdown.model.Material
 import app.countdown.render.Fonts
 import kotlin.math.roundToInt
 
@@ -73,6 +74,11 @@ val StylePresets = listOf(
     StylePreset(Fill.gradient(c(0xFF0D1F17), c(0xFF1C3D2C), angle = 135f), Fill.solid(c(0xFFEAF7EF)), Fill.solid(c(0xFF6EE7A0))),
     StylePreset(Fill.gradient(c(0xFFF3E9DC), c(0xFFE6D2BC), angle = 135f), Fill.solid(c(0xFF3B2F2F)), Fill.solid(c(0xFFA47148))),
     StylePreset(Fill.solid(c(0xFF000000)), Fill.gradient(c(0xFFFFD60A), c(0xFFFF9F0A), angle = 90f), Fill.solid(c(0xFF8E8E93))),
+    // Glas: Milchglas (frosty) und Flüssigglas (liquid)
+    StylePreset(Fill.glass(c(0xFF1C1C22), Material.FROST), Fill.solid(c(0xFFFFFFFF)), Fill.solid(c(0xFFE6E6EA))),
+    StylePreset(Fill.glass(c(0xFF9AD4FF), Material.LIQUID), Fill.glass(c(0xFF9AD4FF), Material.LIQUID), Fill.solid(c(0xFFFFFFFF))),
+    StylePreset(Fill.glass(c(0xFFFFB4A2), Material.FROST), Fill.solid(c(0xFF2A0F1A)), Fill.solid(c(0xFF5B1E2D))),
+    StylePreset(Fill.glass(c(0xFFFFFFFF), Material.LIQUID), Fill.solid(c(0xFFFFFFFF)), Fill.solid(c(0xFFFFFFFF))),
 )
 
 fun EventStyle.matches(p: StylePreset) = background == p.background && numbers == p.numbers && accent == p.accent
@@ -87,7 +93,8 @@ fun StylePresetTile(preset: StylePreset, font: FontChoice, selected: Boolean, on
             .size(width = 84.dp, height = 64.dp)
             .pressable(onClick)
             .clip(shape)
-            .background(preset.background.brush())
+            .background(WallpaperBrush)
+            .background(preset.background.brush(), alpha = if (preset.background.isGlass) 0.55f else 1f)
             .border(
                 if (selected) 2.5.dp else 1.dp,
                 if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
@@ -101,20 +108,47 @@ fun StylePresetTile(preset: StylePreset, font: FontChoice, selected: Boolean, on
     }
 }
 
-/** Farbe oder Verlauf (2–3 Farben, Winkel) für Hintergrund, Zahlen oder Text. */
+/** Farbe, Verlauf (2–3 Farben, Winkel), Milchglas oder Flüssigglas – für alles mit Farbe. */
 @Composable
 fun FillEditor(label: String, fill: Fill, onChange: (Fill) -> Unit) {
     var stop by remember { mutableIntStateOf(0) }
     val sel = stop.coerceIn(0, fill.colors.lastIndex)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 4.dp))
+        val kind = when {
+            fill.material == Material.FROST -> 2
+            fill.material == Material.LIQUID -> 3
+            fill.isGradient -> 1
+            else -> 0
+        }
         SegmentedControl(
-            listOf(stringResource(R.string.fill_solid), stringResource(R.string.fill_gradient)),
-            if (fill.isGradient) 1 else 0,
+            listOf(
+                stringResource(R.string.fill_solid),
+                stringResource(R.string.fill_gradient),
+                stringResource(R.string.fill_frost),
+                stringResource(R.string.fill_liquid),
+            ),
+            kind,
             height = 40.dp,
         ) { i, _ ->
-            if (i == 0 && fill.isGradient) { onChange(Fill.solid(fill.colors[sel])); stop = 0 }
-            if (i == 1 && !fill.isGradient) onChange(Fill(listOf(fill.first, shifted(fill.first)), 135f))
+            val base = fill.colors[sel]
+            stop = 0
+            onChange(
+                when (i) {
+                    1 -> if (fill.isGradient) fill else Fill(listOf(base, shifted(base)), 135f)
+                    2 -> Fill.glass(base, Material.FROST)
+                    3 -> Fill.glass(base, Material.LIQUID)
+                    else -> Fill.solid(base)
+                },
+            )
+        }
+        if (fill.isGlass) {
+            Text(
+                stringResource(R.string.glass_tint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
         }
         if (fill.isGradient) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,30 +203,44 @@ private fun shifted(color: Int): Int {
     return android.graphics.Color.HSVToColor(hsv)
 }
 
+private val fontNames = mapOf(
+    FontChoice.SANS to R.string.font_sans,
+    FontChoice.ROUNDED to R.string.font_rounded,
+    FontChoice.SERIF to R.string.font_serif,
+    FontChoice.MONO to R.string.font_mono,
+    FontChoice.GEO to R.string.font_geo,
+    FontChoice.GROTESK to R.string.font_grotesk,
+    FontChoice.DISPLAY to R.string.font_display,
+    FontChoice.HAND to R.string.font_hand,
+    FontChoice.TECH to R.string.font_tech,
+)
+
+/** Schriftwahl als waagerecht scrollbare Kacheln; [allowSame] fügt "wie Text" vorne an (null). */
 @Composable
-fun FontPicker(selected: FontChoice, onSelect: (FontChoice) -> Unit) {
-    val names = mapOf(
-        FontChoice.SANS to R.string.font_sans,
-        FontChoice.ROUNDED to R.string.font_rounded,
-        FontChoice.SERIF to R.string.font_serif,
-        FontChoice.MONO to R.string.font_mono,
-    )
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FontChoice.entries.forEach { f ->
+fun FontPicker(selected: FontChoice?, allowSame: Boolean = false, onSelect: (FontChoice?) -> Unit) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val options: List<FontChoice?> = (if (allowSame) listOf<FontChoice?>(null) else emptyList()) + FontChoice.entries
+        options.forEach { f ->
             val on = f == selected
             val shape = RoundedCornerShape(16.dp)
             Column(
                 Modifier
-                    .weight(1f)
+                    .size(width = 78.dp, height = 72.dp)
                     .pressable { onSelect(f) }
                     .clip(shape)
                     .background(if (on) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f))
                     .border(if (on) 2.dp else 1.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, shape)
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Text("12", fontFamily = Fonts.family(f), fontSize = 24.sp, fontWeight = Fonts.weight(app.countdown.model.WeightChoice.REGULAR))
-                Text(stringResource(names.getValue(f)), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                if (f == null) {
+                    Text("=", fontSize = 24.sp)
+                    Text(stringResource(R.string.font_same), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                } else {
+                    Text("12", fontFamily = Fonts.family(f), fontSize = 24.sp, fontWeight = Fonts.weight(app.countdown.model.WeightChoice.REGULAR))
+                    Text(stringResource(fontNames.getValue(f)), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
             }
         }
     }

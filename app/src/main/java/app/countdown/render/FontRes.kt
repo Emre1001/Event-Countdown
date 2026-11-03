@@ -31,6 +31,36 @@ internal object FontRes {
             WeightChoice.SEMIBOLD -> R.font.f_mono_600
             WeightChoice.BOLD -> R.font.f_mono_800
         }
+        FontChoice.GEO -> when (weight) {
+            WeightChoice.LIGHT -> R.font.f_geo_300
+            WeightChoice.REGULAR -> R.font.f_geo_400
+            WeightChoice.SEMIBOLD -> R.font.f_geo_600
+            WeightChoice.BOLD -> R.font.f_geo_800
+        }
+        FontChoice.GROTESK -> when (weight) {
+            WeightChoice.LIGHT -> R.font.f_grotesk_300
+            WeightChoice.REGULAR -> R.font.f_grotesk_400
+            WeightChoice.SEMIBOLD -> R.font.f_grotesk_600
+            WeightChoice.BOLD -> R.font.f_grotesk_800
+        }
+        FontChoice.DISPLAY -> when (weight) {
+            WeightChoice.LIGHT -> R.font.f_display_300
+            WeightChoice.REGULAR -> R.font.f_display_400
+            WeightChoice.SEMIBOLD -> R.font.f_display_600
+            WeightChoice.BOLD -> R.font.f_display_800
+        }
+        FontChoice.HAND -> when (weight) {
+            WeightChoice.LIGHT -> R.font.f_hand_300
+            WeightChoice.REGULAR -> R.font.f_hand_400
+            WeightChoice.SEMIBOLD -> R.font.f_hand_600
+            WeightChoice.BOLD -> R.font.f_hand_800
+        }
+        FontChoice.TECH -> when (weight) {
+            WeightChoice.LIGHT -> R.font.f_tech_300
+            WeightChoice.REGULAR -> R.font.f_tech_400
+            WeightChoice.SEMIBOLD -> R.font.f_tech_600
+            WeightChoice.BOLD -> R.font.f_tech_800
+        }
     }
 
     fun seconds(font: FontChoice, weight: WeightChoice, countdown: Boolean): Int = when (font) {
@@ -58,6 +88,36 @@ internal object FontRes {
             WeightChoice.SEMIBOLD -> if (countdown) R.font.s_mono_600_down else R.font.s_mono_600_up
             WeightChoice.BOLD -> if (countdown) R.font.s_mono_800_down else R.font.s_mono_800_up
         }
+        FontChoice.GEO -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.font.s_geo_300_down else R.font.s_geo_300_up
+            WeightChoice.REGULAR -> if (countdown) R.font.s_geo_400_down else R.font.s_geo_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.font.s_geo_600_down else R.font.s_geo_600_up
+            WeightChoice.BOLD -> if (countdown) R.font.s_geo_800_down else R.font.s_geo_800_up
+        }
+        FontChoice.GROTESK -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.font.s_grotesk_300_down else R.font.s_grotesk_300_up
+            WeightChoice.REGULAR -> if (countdown) R.font.s_grotesk_400_down else R.font.s_grotesk_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.font.s_grotesk_600_down else R.font.s_grotesk_600_up
+            WeightChoice.BOLD -> if (countdown) R.font.s_grotesk_800_down else R.font.s_grotesk_800_up
+        }
+        FontChoice.DISPLAY -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.font.s_display_300_down else R.font.s_display_300_up
+            WeightChoice.REGULAR -> if (countdown) R.font.s_display_400_down else R.font.s_display_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.font.s_display_600_down else R.font.s_display_600_up
+            WeightChoice.BOLD -> if (countdown) R.font.s_display_800_down else R.font.s_display_800_up
+        }
+        FontChoice.HAND -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.font.s_hand_300_down else R.font.s_hand_300_up
+            WeightChoice.REGULAR -> if (countdown) R.font.s_hand_400_down else R.font.s_hand_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.font.s_hand_600_down else R.font.s_hand_600_up
+            WeightChoice.BOLD -> if (countdown) R.font.s_hand_800_down else R.font.s_hand_800_up
+        }
+        FontChoice.TECH -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.font.s_tech_300_down else R.font.s_tech_300_up
+            WeightChoice.REGULAR -> if (countdown) R.font.s_tech_400_down else R.font.s_tech_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.font.s_tech_600_down else R.font.s_tech_600_up
+            WeightChoice.BOLD -> if (countdown) R.font.s_tech_800_down else R.font.s_tech_800_up
+        }
     }
 
     fun secondsLayout(font: FontChoice, weight: WeightChoice, countdown: Boolean): Int = when (font) {
@@ -84,6 +144,36 @@ internal object FontRes {
             WeightChoice.REGULAR -> if (countdown) R.layout.w_s_mono_400_down else R.layout.w_s_mono_400_up
             WeightChoice.SEMIBOLD -> if (countdown) R.layout.w_s_mono_600_down else R.layout.w_s_mono_600_up
             WeightChoice.BOLD -> if (countdown) R.layout.w_s_mono_800_down else R.layout.w_s_mono_800_up
+        }
+        FontChoice.GEO -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.layout.w_s_geo_300_down else R.layout.w_s_geo_300_up
+            WeightChoice.REGULAR -> if (countdown) R.layout.w_s_geo_400_down else R.layout.w_s_geo_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.layout.w_s_geo_600_down else R.layout.w_s_geo_600_up
+            WeightChoice.BOLD -> if (countdown) R.layout.w_s_geo_800_down else R.layout.w_s_geo_800_up
+        }
+        FontChoice.GROTESK -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.layout.w_s_grotesk_300_down else R.layout.w_s_grotesk_300_up
+            WeightChoice.REGULAR -> if (countdown) R.layout.w_s_grotesk_400_down else R.layout.w_s_grotesk_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.layout.w_s_grotesk_600_down else R.layout.w_s_grotesk_600_up
+            WeightChoice.BOLD -> if (countdown) R.layout.w_s_grotesk_800_down else R.layout.w_s_grotesk_800_up
+        }
+        FontChoice.DISPLAY -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.layout.w_s_display_300_down else R.layout.w_s_display_300_up
+            WeightChoice.REGULAR -> if (countdown) R.layout.w_s_display_400_down else R.layout.w_s_display_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.layout.w_s_display_600_down else R.layout.w_s_display_600_up
+            WeightChoice.BOLD -> if (countdown) R.layout.w_s_display_800_down else R.layout.w_s_display_800_up
+        }
+        FontChoice.HAND -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.layout.w_s_hand_300_down else R.layout.w_s_hand_300_up
+            WeightChoice.REGULAR -> if (countdown) R.layout.w_s_hand_400_down else R.layout.w_s_hand_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.layout.w_s_hand_600_down else R.layout.w_s_hand_600_up
+            WeightChoice.BOLD -> if (countdown) R.layout.w_s_hand_800_down else R.layout.w_s_hand_800_up
+        }
+        FontChoice.TECH -> when (weight) {
+            WeightChoice.LIGHT -> if (countdown) R.layout.w_s_tech_300_down else R.layout.w_s_tech_300_up
+            WeightChoice.REGULAR -> if (countdown) R.layout.w_s_tech_400_down else R.layout.w_s_tech_400_up
+            WeightChoice.SEMIBOLD -> if (countdown) R.layout.w_s_tech_600_down else R.layout.w_s_tech_600_up
+            WeightChoice.BOLD -> if (countdown) R.layout.w_s_tech_800_down else R.layout.w_s_tech_800_up
         }
     }
 }

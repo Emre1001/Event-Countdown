@@ -8,6 +8,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -172,6 +173,29 @@ internal fun SegmentedControl(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Waagerecht scrollbare Auswahl-Chips (für viele Optionen, z. B. Elemente oder Animationen). */
+@Composable
+internal fun ChipRow(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEachIndexed { i, label ->
+            val on = i == selected
+            val bg by animateColorAsState(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f), label = "chip")
+            val fg by animateColorAsState(if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, label = "chipText")
+            Box(
+                Modifier
+                    .height(40.dp)
+                    .pressable { onSelect(i) }
+                    .background(bg, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
         }
     }
 }

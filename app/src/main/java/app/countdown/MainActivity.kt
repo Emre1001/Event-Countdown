@@ -1,6 +1,10 @@
 package app.countdown
 
 import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivityResultRegistryOwner
@@ -25,12 +29,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import app.countdown.data.AppSettings
 import app.countdown.data.EventRepository
+import app.countdown.data.EventShare
+import app.countdown.data.Reminders
+import app.countdown.render.ImageStore
 import app.countdown.model.CountdownEvent
 import app.countdown.ui.CountdownTheme
 import app.countdown.ui.EditorScreen
@@ -50,20 +59,31 @@ private sealed interface Screen {
 
 class MainActivity : ComponentActivity() {
     private var requestedEvent by mutableStateOf<String?>(null)
+    private var importUri by mutableStateOf<Uri?>(null)
+
+    private fun readIntent(intent: Intent?) {
+        intent ?: return
+        requestedEvent = intent.getStringExtra(EXTRA_EVENT_ID)
+        importUri = when (intent.action) {
+            Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme == "content" || it.scheme == "file" }
+            Intent.ACTION_SEND -> @Suppress("DEPRECATION") (intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri)
+            else -> null
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         AppSettings.init(applicationContext)
         EventRepository.init(applicationContext)
-        requestedEvent = intent?.getStringExtra(EXTRA_EVENT_ID)
-        setContent { Root(requestedEvent) { requestedEvent = null } }
+        readIntent(intent)
+        setContent { Root(requestedEvent, importUri, { requestedEvent = null }, { importUri = null }) }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        requestedEvent = intent.getStringExtra(EXTRA_EVENT_ID)
+        readIntent(intent)
     }
 
     override fun onResume() {
@@ -77,7 +97,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun Root(requestedEvent: String?, onRequestHandled: () -> Unit) {
+private fun Root(requestedEvent: String?, importUri: Uri?, onRequestHandled: () -> Unit, onImportHandled: () -> Unit) {
     val language by AppSettings.language.collectAsState()
     // Navigation liegt außerhalb von Sprach- und Theme-Wechsel, damit beide den Zustand nicht verlieren.
     val nav = remember { mutableStateOf<Screen>(Screen.Home) }
@@ -100,7 +120,7 @@ private fun Root(requestedEvent: String?, onRequestHandled: () -> Unit) {
             LocalActivityResultRegistryOwner provides (base as ComponentActivity),
         ) {
             ThemeRevealHost { dark, overlay ->
-                CountdownTheme(dark) { App(nav, overlay, requestedEvent, onRequestHandled) }
+                CountdownTheme(dark) { App(nav, overlay, requestedEvent, importUri, onRequestHandled, onImportHandled) }
             }
         }
     }
@@ -111,9 +131,29 @@ private fun App(
     nav: MutableState<Screen>,
     overlay: Boolean,
     requestedEvent: String?,
+    importUri: Uri?,
     onRequestHandled: () -> Unit,
+    onImportHandled: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    fun changed() {
+        WidgetUpdater.updateAll(context)
+        Reminders.schedule(context)
+    }
+    fun import(uri: Uri) {
+        scope.launch {
+            val e = EventShare.import(context, uri)
+            if (e == null) {
+                Toast.makeText(context, context.getString(R.string.import_failed), Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(context, context.getString(R.string.import_done), Toast.LENGTH_SHORT).show()
+                changed()
+                nav.value = Screen.Edit(e)
+            }
+        }
+    }
+    val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { import(it) } }
     val events by EventRepository.state.collectAsState()
     var screen by nav
 
@@ -130,6 +170,12 @@ private fun App(
             while (true) {
                 UpdateController.checkAuto()
                 delay(6L * 60 * 60 * 1000)
+            }
+        }
+        LaunchedEffect(importUri) {
+            if (importUri != null) {
+                import(importUri)
+                onImportHandled()
             }
         }
         UpdateHost()
@@ -153,19 +199,31 @@ private fun App(
                     onAdd = { screen = Screen.Edit(null) },
                     onOpen = { screen = Screen.Edit(it) },
                     onSettings = { screen = Screen.Settings },
+                    onImport = { openFile.launch(arrayOf("*/*")) },
                 )
                 Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
                 is Screen.Edit -> EditorScreen(
                     initial = s.event,
                     onSave = {
                         EventRepository.upsert(it)
-                        WidgetUpdater.updateAll(context)
+                        changed()
                         screen = Screen.Home
                     },
                     onDelete = {
+                        Reminders.cancel(context, it)
                         EventRepository.delete(it)
-                        WidgetUpdater.updateAll(context)
+                        changed()
                         screen = Screen.Home
+                    },
+                    onDuplicate = { e ->
+                        val copy = e.copy(
+                            id = java.util.UUID.randomUUID().toString(),
+                            title = e.title + " " + context.getString(R.string.copy_suffix),
+                            style = e.style.mapImages { ImageStore.duplicate(context, it) },
+                        )
+                        EventRepository.add(copy)
+                        changed()
+                        screen = Screen.Edit(copy)
                     },
                     onClose = { screen = Screen.Home },
                 )

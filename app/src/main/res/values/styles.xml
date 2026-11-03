@@ -14,6 +14,15 @@
         <item name="android:textColor">#FFFFFFFF</item>
     </style>
 
+    <style name="PreviewRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:fontFamily">@font/f_sans_600</item>
+        <item name="android:textColor">#FFEDEDEF</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
     <style name="PreviewLabel">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>

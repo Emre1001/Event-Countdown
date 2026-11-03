@@ -15,14 +15,21 @@ import app.countdown.model.WidgetFormat
 object WidgetUpdater {
     private const val ACTION_TICK = "app.countdown.TICK"
 
+    /** Countdown-Widgets mit ihrem Standardformat (die Größe bestimmt das tatsächliche Layout). */
     private val providers = listOf(
         SmallWidgetProvider::class.java to WidgetFormat.SQUARE,
         WideWidgetProvider::class.java to WidgetFormat.WIDE,
+        BarWidgetProvider::class.java to WidgetFormat.BAR,
+        LargeWidgetProvider::class.java to WidgetFormat.SQUARE,
     )
 
     fun updateWidget(context: Context, widgetId: Int) {
         val mgr = AppWidgetManager.getInstance(context)
         val cls = mgr.getAppWidgetInfo(widgetId)?.provider?.className ?: return
+        if (cls == OverviewWidgetProvider::class.java.name) {
+            mgr.updateAppWidget(widgetId, WidgetRenderer.renderOverview(context, widgetId))
+            return
+        }
         val format = providers.firstOrNull { it.first.name == cls }?.second ?: return
         mgr.updateAppWidget(widgetId, WidgetRenderer.render(context, widgetId, format))
     }
@@ -34,10 +41,13 @@ object WidgetUpdater {
                 runCatching { mgr.updateAppWidget(id, WidgetRenderer.render(context, id, format)) }
             }
         }
+        mgr.getAppWidgetIds(ComponentName(context, OverviewWidgetProvider::class.java)).forEach { id ->
+            runCatching { mgr.updateAppWidget(id, WidgetRenderer.renderOverview(context, id)) }
+        }
         schedule(context)
     }
 
-    private fun allWidgetIds(context: Context): List<Int> {
+    private fun eventWidgetIds(context: Context): List<Int> {
         val mgr = AppWidgetManager.getInstance(context)
         return providers.flatMap { (cls, _) -> mgr.getAppWidgetIds(ComponentName(context, cls)).toList() }
     }
@@ -58,12 +68,17 @@ object WidgetUpdater {
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = pendingIntent(context)
         val now = System.currentTimeMillis()
-        val next = allWidgetIds(context)
-            .mapNotNull { EventRepository.widgetEvent(it) }
-            .minOfOrNull { e ->
-                val finest = e.widgetUnits.lastOrNull { it != CountdownUnit.SECONDS } ?: CountdownUnit.MINUTES
-                Countdown.nextChangeMillis(e.targetMillis, now, finest)
+        val candidates = eventWidgetIds(context).mapNotNull { EventRepository.widgetEvent(it) }.map { e ->
+            val finest = e.widgetUnits.lastOrNull { it != CountdownUnit.SECONDS } ?: CountdownUnit.MINUTES
+            Countdown.nextChangeMillis(e.effectiveTarget(now), now, finest)
+        }.toMutableList()
+        val mgr = AppWidgetManager.getInstance(context)
+        if (mgr.getAppWidgetIds(ComponentName(context, OverviewWidgetProvider::class.java)).isNotEmpty()) {
+            EventRepository.state.value.forEach { e ->
+                candidates += Countdown.nextChangeMillis(e.effectiveTarget(now), now, CountdownUnit.HOURS)
             }
+        }
+        val next = candidates.minOrNull()
         if (next == null) {
             alarm.cancel(pi)
             return

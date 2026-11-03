@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_preview_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp">
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fontFamily="@font/f_sans_600"
+        android:text="@string/preview_title"
+        android:textColor="#FF7D9CC4"
+        android:textSize="15sp" />
+
+    <TextView style="@style/PreviewNumber" android:text="12" android:textSize="30sp" />
+    <TextView style="@style/PreviewLabel" android:layout_marginStart="4dp" android:layout_marginEnd="14dp" android:text="@string/short_days" />
+    <TextView style="@style/PreviewNumber" android:text="04" android:textSize="30sp" />
+    <TextView style="@style/PreviewLabel" android:layout_marginStart="4dp" android:text="@string/short_hours" />
+</LinearLayout>

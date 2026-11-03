@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import app.countdown.model.Fill
+import app.countdown.model.Material
 import app.countdown.render.ImageStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -35,11 +36,19 @@ private class FillBrush(val fill: Fill) : ShaderBrush() {
     override fun hashCode() = fill.hashCode()
 }
 
-fun Fill.brush(): Brush = if (isGradient) FillBrush(this) else SolidColor(Color(first))
+fun Fill.brush(): Brush = when {
+    isGradient -> FillBrush(this)
+    material == Material.FROST -> SolidColor(Color(Fill.lerpColor(first, android.graphics.Color.WHITE, 0.55f)).copy(alpha = 0.85f))
+    material == Material.LIQUID -> Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.92f), Color(first).copy(alpha = 0.55f)))
+    else -> SolidColor(Color(first))
+}
+
+/** Reine Farbe ohne Verlauf/Glas – dann reicht eine einfache Textfarbe (keine Offscreen-Ebene). */
+val Fill.isPlain: Boolean get() = material == Material.COLOR && colors.size == 1
 
 /** Färbt den Inhalt mit einem Verlauf ein (Inhalt muss deckend gezeichnet sein). */
 fun Modifier.fillOverlay(fill: Fill): Modifier =
-    if (!fill.isGradient) this
+    if (fill.isPlain) this
     else this
         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
         .drawWithContent {

@@ -45,6 +45,12 @@ object EventRepository {
         persist(if (list.any { it.id == event.id }) list.map { if (it.id == event.id) event else it } else list + event)
     }
 
+    /** Für den Import: Event mit neuer ID einfügen. */
+    @Synchronized
+    fun add(event: CountdownEvent) {
+        persist(_state.value + event)
+    }
+
     @Synchronized
     fun delete(id: String) {
         persist(_state.value.filterNot { it.id == id })
@@ -59,15 +65,19 @@ object EventRepository {
     fun widgetEvent(widgetId: Int): CountdownEvent? = get(widgets.getString("event_$widgetId", null))
 
     fun unbindWidget(widgetId: Int) {
-        widgets.edit().remove("event_$widgetId").remove("parity_$widgetId").apply()
+        val e = widgets.edit().remove("event_$widgetId")
+        widgets.all.keys.filter { it.startsWith("u_${widgetId}_") }.forEach { e.remove(it) }
+        e.apply()
     }
 
-    fun widgetsFor(eventId: String): Boolean = widgets.all.any { (k, v) -> k.startsWith("event_") && v == eventId }
+    /** Letzter angezeigter Text und sichtbares Bild (0/1) einer Zahlen-Ebene im Widget. */
+    fun unitState(widgetId: Int, unit: String): Pair<String?, Int> {
+        val raw = widgets.getString("u_${widgetId}_$unit", null) ?: return null to 0
+        val i = raw.lastIndexOf('|')
+        return raw.substring(0, i) to (raw.substring(i + 1).toIntOrNull() ?: 0)
+    }
 
-    // Welches der beiden Bilder im Widget gerade sichtbar ist (für die Überblendung).
-    fun flipParity(widgetId: Int): Int = widgets.getInt("parity_$widgetId", 0)
-
-    fun saveFlipParity(widgetId: Int, parity: Int) {
-        widgets.edit().putInt("parity_$widgetId", parity).apply()
+    fun saveUnitState(widgetId: Int, unit: String, text: String, parity: Int) {
+        widgets.edit().putString("u_${widgetId}_$unit", "$text|$parity").apply()
     }
 }

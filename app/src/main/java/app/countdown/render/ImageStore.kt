@@ -55,12 +55,45 @@ object ImageStore {
         return context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
     }
 
+    fun file(context: Context, name: String) = File(dir(context), name)
+
+    /** Bild aus einem Strom übernehmen (Import). Ungültige Bilder werden verworfen. */
+    fun importStream(context: Context, input: java.io.InputStream, ext: String, limit: Long): String? {
+        val safeExt = ext.lowercase().takeIf { it in setOf("png", "jpg", "jpeg", "webp") } ?: return null
+        val name = UUID.randomUUID().toString() + "." + safeExt
+        val f = File(dir(context), name)
+        var total = 0L
+        f.outputStream().use { out ->
+            val buf = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                total += n
+                if (total > limit) { out.close(); f.delete(); return null }
+                out.write(buf, 0, n)
+            }
+        }
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(f.path, opts)
+        if (opts.outWidth <= 0 || opts.outHeight <= 0) { f.delete(); return null }
+        return name
+    }
+
     fun load(context: Context, name: String?): Bitmap? {
         if (name.isNullOrBlank()) return null
         cache.get(name)?.let { return it }
         val file = File(dir(context), name)
         if (!file.exists()) return null
         return runCatching { BitmapFactory.decodeFile(file.path) }.getOrNull()?.also { cache.put(name, it) }
+    }
+
+    /** Kopie mit neuem Namen (z. B. beim Duplizieren eines Events). */
+    fun duplicate(context: Context, name: String): String? {
+        val src = File(dir(context), name)
+        if (!src.exists()) return null
+        val copy = UUID.randomUUID().toString() + "." + name.substringAfterLast('.', "jpg")
+        src.copyTo(File(dir(context), copy))
+        return copy
     }
 
     fun delete(context: Context, names: Collection<String>) {

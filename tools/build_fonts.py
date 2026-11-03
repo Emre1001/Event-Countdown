@@ -5,7 +5,8 @@ Erzeugt die gebündelten Schriften der App (reproduzierbar).
   pip install fonttools uharfbuzz
   python3 tools/build_fonts.py <ordner-mit-quell-ttfs>
 
-Quellen (Google Fonts, SIL OFL 1.1): Inter, Nunito, Fraunces, JetBrains Mono (variable TTFs).
+Quellen (Google Fonts, SIL OFL 1.1): Inter, Nunito, Fraunces, JetBrains Mono, Outfit, Space Grotesk,
+Playfair Display, Caveat, Orbitron (variable TTFs).
 
 Ausgabe:
   res/font/f_<familie>_<gewicht>.ttf       Text + Zahlen (Ziffern fest tabellarisch)
@@ -33,6 +34,11 @@ FAMILIES = {
     "rounded": ("nunito.ttf", {}),
     "serif": ("fraunces.ttf", {"opsz": 72, "SOFT": 0, "WONK": 0}),
     "mono": ("mono.ttf", {}),
+    "geo": ("outfit.ttf", {}),
+    "grotesk": ("grotesk.ttf", {}),
+    "display": ("playfair.ttf", {}),
+    "hand": ("caveat.ttf", {}),
+    "tech": ("orbitron.ttf", {}),
 }
 WEIGHTS = [300, 400, 600, 800]
 

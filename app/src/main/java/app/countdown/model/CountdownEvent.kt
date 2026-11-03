@@ -2,19 +2,36 @@ package app.countdown.model
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
+/** Kalender-Einheiten (Jahre, Monate) haben keine feste Länge; [seconds] ist dann 0. */
 enum class CountdownUnit(val seconds: Long) {
+    YEARS(0),
+    MONTHS(0),
+    WEEKS(604_800),
     DAYS(86_400),
     HOURS(3_600),
     MINUTES(60),
     SECONDS(1),
 }
 
+/** Countdown bis zu einem Zeitpunkt oder "Seit": wie lange etwas schon her ist (z. B. Scooter seit …). */
+enum class EventMode { COUNTDOWN, SINCE }
+
+/** Wiederholung: Geburtstage, Jahrestage, Monatliches … – der Countdown springt danach auf den nächsten Termin. */
+enum class Repeat { NONE, YEARLY, MONTHLY, WEEKLY }
+
 data class CountdownEvent(
     val id: String = UUID.randomUUID().toString(),
     val title: String = "",
+    val note: String = "",
     val targetMillis: Long,
+    val mode: EventMode = EventMode.COUNTDOWN,
+    val repeat: Repeat = Repeat.NONE,
+    val startMillis: Long = System.currentTimeMillis(),
+    val reminder: Boolean = false,
     val units: Set<CountdownUnit> = setOf(CountdownUnit.DAYS, CountdownUnit.HOURS, CountdownUnit.MINUTES),
     val style: EventStyle = EventStyle(),
 ) {
@@ -33,10 +50,36 @@ data class CountdownEvent(
             return CountdownUnit.entries.filter { it in u }
         }
 
+    /** Der Zeitpunkt, auf den gerade gezählt wird (bei Wiederholung der nächste anstehende Termin). */
+    fun effectiveTarget(now: Long): Long {
+        if (mode == EventMode.SINCE || repeat == Repeat.NONE || targetMillis >= now) return targetMillis
+        val zone = ZoneId.systemDefault()
+        val base = Instant.ofEpochMilli(targetMillis).atZone(zone)
+        var n = 0L
+        var t = base
+        // Sprung in großen Schritten, dann fein – auch für sehr alte Startdaten schnell.
+        while (t.toInstant().toEpochMilli() < now) {
+            n++
+            t = when (repeat) {
+                Repeat.YEARLY -> base.plusYears(n)
+                Repeat.MONTHLY -> base.plusMonths(n)
+                Repeat.WEEKLY -> base.plusWeeks(n)
+                Repeat.NONE -> return targetMillis
+            }
+            if (n > 100_000) break
+        }
+        return t.toInstant().toEpochMilli()
+    }
+
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("title", title)
+        put("note", note)
         put("target", targetMillis)
+        put("mode", mode.name)
+        put("repeat", repeat.name)
+        put("start", startMillis)
+        put("reminder", reminder)
         put("units", JSONArray(orderedUnits.map { it.name }))
         put("style", style.toJson())
     }
@@ -51,18 +94,24 @@ data class CountdownEvent(
                 if (unitsJson != null) for (i in 0 until unitsJson.length()) {
                     runCatching { CountdownUnit.valueOf(unitsJson.getString(i)) }.getOrNull()?.let(::add)
                 }
-            }.ifEmpty { CountdownUnit.entries.toSet() }
+            }.ifEmpty { setOf(CountdownUnit.DAYS, CountdownUnit.HOURS, CountdownUnit.MINUTES) }
             val style = o.optJSONObject("style")?.let { EventStyle.fromJson(it) } ?: legacyStyle(o)
+            val target = normalize(o.getLong("target"))
             return CountdownEvent(
                 id = o.getString("id"),
                 title = o.optString("title", ""),
-                targetMillis = normalize(o.getLong("target")),
+                note = o.optString("note", ""),
+                targetMillis = target,
+                mode = EventStyle.enumOr(o.optString("mode"), EventMode.COUNTDOWN),
+                repeat = EventStyle.enumOr(o.optString("repeat"), Repeat.NONE),
+                startMillis = o.optLong("start", minOf(target, System.currentTimeMillis())),
+                reminder = o.optBoolean("reminder", false),
                 units = units,
                 style = style,
             )
         }
 
-        /** Übernahme der Farben aus Version 1 (bg / text / accent / alpha). */
+        /** Übernahme der Farben aus der ersten Version (bg / text / accent / alpha). */
         private fun legacyStyle(o: JSONObject): EventStyle {
             val d = EventStyle()
             return d.copy(
