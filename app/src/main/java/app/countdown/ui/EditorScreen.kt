@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,7 +72,7 @@ private fun newEvent() = CountdownEvent(
         .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun EditorScreen(
     initial: CountdownEvent?,
@@ -78,11 +80,21 @@ fun EditorScreen(
     onDelete: ((String) -> Unit)?,
     onClose: () -> Unit,
 ) {
-    var draft by remember(initial?.id) { mutableStateOf(initial ?: newEvent()) }
+    val original = remember(initial?.id) { initial ?: newEvent() }
+    var draft by remember(initial?.id) { mutableStateOf(original) }
+    var showDiscard by remember { mutableStateOf(false) }
+    val dirty = draft != original
+    val requestClose = { if (dirty) showDiscard = true else onClose() }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
-    BackHandler(onBack = onClose)
+    BackHandler(onBack = requestClose)
+
+    // Kleine/Querformat-Fenster und offene Tastatur: Vorschau nicht fest anheften, sonst bleibt kaum Platz.
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    val imeVisible = androidx.compose.foundation.layout.WindowInsets.isImeVisible
+    val pinPreview = config.screenHeightDp >= 600 && !imeVisible
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     val zone = ZoneId.systemDefault()
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
@@ -92,10 +104,10 @@ fun EditorScreen(
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
-        Column(Modifier.fillMaxSize().padding(pad)) {
+        Column(Modifier.fillMaxSize().padding(pad).readableWidth()) {
             // Kopfzeile
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, stringResource(R.string.close)) }
+                IconButton(onClick = requestClose) { Icon(Icons.Filled.Close, stringResource(R.string.close)) }
                 Text(
                     stringResource(if (initial == null) R.string.add_event else R.string.edit_event),
                     modifier = Modifier.weight(1f),
@@ -108,16 +120,18 @@ fun EditorScreen(
             }
 
             // Live-Vorschau auf einem "Hintergrundbild", damit Deckkraft sichtbar wird.
-            Box(
-                Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(listOf(Color(0xFF3A1C71), Color(0xFFD76D77), Color(0xFFFFAF7B))),
-                        RoundedCornerShape(32.dp),
-                    )
-                    .padding(14.dp),
-            ) { EventCard(draft) }
+            val preview: @Composable () -> Unit = {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.linearGradient(listOf(Color(0xFF3A1C71), Color(0xFFD76D77), Color(0xFFFFAF7B))),
+                            RoundedCornerShape(32.dp),
+                        )
+                        .padding(14.dp),
+                ) { EventCard(draft) }
+            }
+            if (pinPreview) Box(Modifier.padding(horizontal = 16.dp)) { preview() }
 
             Column(
                 Modifier
@@ -126,11 +140,17 @@ fun EditorScreen(
                     .padding(horizontal = 16.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                if (!pinPreview && !imeVisible) preview()
                 TextField(
                     value = draft.title,
                     onValueChange = { draft = draft.copy(title = it.take(40)) },
                     placeholder = { Text(stringResource(R.string.field_title_hint)) },
                     singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusManager.clearFocus() }),
                     shape = RoundedCornerShape(20.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
@@ -161,22 +181,28 @@ fun EditorScreen(
                         Text(stringResource(R.string.select_all))
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val labels = listOf(
-                        CountdownUnit.DAYS to R.plurals.unit_days,
-                        CountdownUnit.HOURS to R.plurals.unit_hours,
-                        CountdownUnit.MINUTES to R.plurals.unit_minutes,
-                        CountdownUnit.SECONDS to R.plurals.unit_seconds,
-                    )
-                    val res = androidx.compose.ui.platform.LocalContext.current.resources
-                    labels.forEach { (unit, plural) ->
-                        UnitToggle(
-                            label = res.getQuantityString(plural, 2),
-                            selected = unit in draft.units,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            val next = if (unit in draft.units) draft.units - unit else draft.units + unit
-                            if (next.isNotEmpty()) draft = draft.copy(units = next)
+                val unitLabels = listOf(
+                    CountdownUnit.DAYS to R.plurals.unit_days,
+                    CountdownUnit.HOURS to R.plurals.unit_hours,
+                    CountdownUnit.MINUTES to R.plurals.unit_minutes,
+                    CountdownUnit.SECONDS to R.plurals.unit_seconds,
+                )
+                val res = androidx.compose.ui.platform.LocalContext.current.resources
+                // Bei großer Schrift 2 × 2 statt 4 in einer Reihe, damit nichts abgeschnitten wird.
+                val perRow = if (config.fontScale > 1.25f || config.screenWidthDp < 340) 2 else 4
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    unitLabels.chunked(perRow).forEach { rowItems ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            rowItems.forEach { (unit, plural) ->
+                                UnitToggle(
+                                    label = res.getQuantityString(plural, 2),
+                                    selected = unit in draft.units,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    val next = if (unit in draft.units) draft.units - unit else draft.units + unit
+                                    if (next.isNotEmpty()) draft = draft.copy(units = next)
+                                }
+                            }
                         }
                     }
                 }
@@ -250,8 +276,11 @@ fun EditorScreen(
         val state = rememberTimePickerState(ldt.hour, ldt.minute, is24Hour = true)
         Dialog(onDismissRequest = { showTime = false }) {
             Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    TimePicker(state)
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    if (config.screenHeightDp < 520) androidx.compose.material3.TimeInput(state) else TimePicker(state)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showTime = false }) { Text(stringResource(R.string.cancel)) }
                         TextButton(onClick = {
@@ -262,6 +291,20 @@ fun EditorScreen(
                 }
             }
         }
+    }
+
+    if (showDiscard) {
+        AlertDialog(
+            onDismissRequest = { showDiscard = false },
+            title = { Text(stringResource(R.string.discard_title)) },
+            text = { Text(stringResource(R.string.discard_body)) },
+            confirmButton = {
+                TextButton(onClick = { showDiscard = false; onClose() }) {
+                    Text(stringResource(R.string.discard), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(R.string.keep_editing)) } },
+        )
     }
 
     if (showDelete && initial != null) {
@@ -322,9 +365,9 @@ private fun UnitToggle(label: String, selected: Boolean, modifier: Modifier = Mo
     )
     Box(
         modifier
-            .height(46.dp)
+            .heightIn(min = 48.dp)
             .pressable(onClick)
             .background(bg, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center,
-    ) { Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
+    ) { Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.padding(horizontal = 6.dp)) }
 }

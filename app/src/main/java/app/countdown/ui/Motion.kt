@@ -11,6 +11,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
@@ -24,6 +28,10 @@ object Motion {
     const val STAGGER_MS = 50L
     const val MAX_STAGGER_STEPS = 8
 }
+
+/** Auf großen Fenstern (Tablet, Faltbares, Querformat) bleibt der Inhalt gut lesbar und zentriert. */
+fun Modifier.readableWidth(): Modifier =
+    wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = 640.dp).fillMaxWidth()
 
 /** Klick mit federndem Eindrücken (kurz zusammenziehen, dann zurückfedern) statt Ripple. */
 fun Modifier.pressable(onClick: () -> Unit): Modifier = composed {

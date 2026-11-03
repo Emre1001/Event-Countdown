@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -55,26 +57,40 @@ fun CountdownDisplay(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val numberStyle = TextStyle(
-        fontSize = numberSize,
-        lineHeight = numberSize * 1.18f,
-        fontWeight = FontWeight.Light,
-        fontFeatureSettings = "tnum",
-        letterSpacing = (-0.5).sp,
-        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
-    )
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(numberSize.value.dp * 0.42f)) {
-        values.forEachIndexed { index, uv ->
-            androidx.compose.runtime.key(uv.unit) {
-                Column {
-                    RollingNumber(uv.value, if (index == 0) 1 else 2, numberStyle, numberColor)
-                    Text(
-                        unitLabel(context, uv.unit, uv.value),
-                        color = labelColor,
-                        fontSize = (numberSize.value * 0.27f).coerceAtLeast(11f).sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                    )
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val labels = values.map { unitLabel(context, it.unit, it.value) }
+        // Grobe Breitenschätzung in Schrifthöhen: so passen auch 4 Einheiten auf 320 dp Breite.
+        var em = (values.size - 1) * 0.42f
+        values.forEachIndexed { i, uv ->
+            val digits = uv.value.toString().padStart(if (i == 0) 1 else 2, '0').length
+            em += maxOf(digits * 0.58f, labels[i].length * 0.17f)
+        }
+        val sizeDp = minOf(numberSize.value, maxWidth.value / em).coerceAtLeast(20f)
+        // Zahlen sind dp-basiert (unabhängig von der Systemschrift); Beschriftungen wachsen moderat mit.
+        val numberSp = with(density) { sizeDp.dp.toSp() }
+        val labelSp = with(density) { (sizeDp * 0.27f).coerceAtLeast(11f).dp.toSp() } * density.fontScale.coerceAtMost(1.3f)
+        val numberStyle = TextStyle(
+            fontSize = numberSp,
+            lineHeight = numberSp * 1.18f,
+            fontWeight = FontWeight.Light,
+            fontFeatureSettings = "tnum",
+            letterSpacing = (-0.5).sp,
+            lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy((sizeDp * 0.42f).dp)) {
+            values.forEachIndexed { index, uv ->
+                androidx.compose.runtime.key(uv.unit) {
+                    Column {
+                        RollingNumber(uv.value, if (index == 0) 1 else 2, numberStyle, numberColor)
+                        Text(
+                            labels[index],
+                            color = labelColor,
+                            fontSize = labelSp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }

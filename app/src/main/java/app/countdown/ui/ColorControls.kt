@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -96,41 +97,43 @@ fun ColorRow(label: String, color: Int, onChange: (Int) -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Swatches.forEach { c ->
                 val selected = (c or 0xFF000000.toInt()) == (color or 0xFF000000.toInt())
+                Box(Modifier.size(48.dp).clickable { onChange(c) }, contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Color(c))
+                            .border(
+                                if (selected) 3.dp else 1.dp,
+                                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                CircleShape,
+                            ),
+                    )
+                }
+            }
+            Box(Modifier.size(48.dp).clickable { expanded = !expanded }, contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
                         .size(34.dp)
                         .clip(CircleShape)
-                        .background(Color(c))
-                        .border(
-                            if (selected) 3.dp else 1.dp,
-                            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            CircleShape,
+                        .background(
+                            Brush.sweepGradient(
+                                listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red),
+                            ),
                         )
-                        .clickable { onChange(c) },
+                        .border(
+                            if (expanded) 3.dp else 1.dp,
+                            if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            CircleShape,
+                        ),
                 )
             }
-            Box(
-                Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.sweepGradient(
-                            listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red),
-                        ),
-                    )
-                    .border(
-                        if (expanded) 3.dp else 1.dp,
-                        if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                        CircleShape,
-                    )
-                    .clickable { expanded = !expanded },
-            )
         }
         AnimatedVisibility(expanded) {
             HsvPicker(color, onChange, Modifier.padding(bottom = 6.dp))
@@ -169,14 +172,15 @@ fun GradientSlider(
     modifier: Modifier = Modifier,
 ) {
     var widthPx by remember { mutableStateOf(1) }
-    val thumb = 32.dp
+    val thumb = 40.dp
     val thumbPx = with(LocalDensity.current) { thumb.toPx() }
     val onChange by rememberUpdatedState(onValueChange)
     Box(
         modifier
             .fillMaxWidth()
             .height(thumb)
-            .clip(RoundedCornerShape(16.dp))
+            .systemGestureExclusion()
+            .clip(RoundedCornerShape(20.dp))
             .background(brush)
             .onSizeChanged { widthPx = it.width.coerceAtLeast(1) }
             .pointerInput(Unit) {

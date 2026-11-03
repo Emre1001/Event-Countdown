@@ -63,6 +63,11 @@
     <string name="update_error">The update could not be downloaded.</string>
     <string name="update_retry">Try again</string>
 
+    <string name="discard_title">Discard changes?</string>
+    <string name="discard_body">Your changes to this countdown will be lost.</string>
+    <string name="discard">Discard</string>
+    <string name="keep_editing">Keep editing</string>
+
     <plurals name="unit_days">
         <item quantity="one">Day</item>
         <item quantity="other">Days</item>

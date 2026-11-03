@@ -67,7 +67,9 @@ private fun UpdateDialog(state: UpdateDialogState) {
                 .fillMaxWidth()
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(28.dp)),
         ) {
-            Column(Modifier.padding(24.dp).animateContentSize(tween(250))) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()).padding(24.dp).animateContentSize(tween(250)),
+            ) {
                 Text(
                     stringResource(R.string.update_available),
                     fontSize = 22.sp,

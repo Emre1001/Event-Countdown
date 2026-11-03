@@ -68,7 +68,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     val status by UpdateController.status.collectAsState()
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
-        Column(Modifier.fillMaxSize().padding(pad)) {
+        Column(Modifier.fillMaxSize().padding(pad).readableWidth()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -165,7 +165,7 @@ private fun ThemeSegmented(selected: ThemePref, onSelect: (ThemePref, Offset) ->
                 Modifier
                     .offset { IntOffset(x.roundToInt(), 0) }
                     .width(with(density) { w.toDp() })
-                    .height(44.dp)
+                    .height(48.dp)
                     .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
             )
         }
@@ -178,7 +178,7 @@ private fun ThemeSegmented(selected: ThemePref, onSelect: (ThemePref, Offset) ->
                 Box(
                     Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(48.dp)
                         .onGloballyPositioned { c ->
                             centers[pref] = c.boundsInRoot().center
                             slots[pref] = c.positionInParent().x.roundToInt() to c.size.width

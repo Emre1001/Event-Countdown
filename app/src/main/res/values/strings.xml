@@ -63,6 +63,11 @@
     <string name="update_error">Das Update konnte nicht geladen werden.</string>
     <string name="update_retry">Erneut versuchen</string>
 
+    <string name="discard_title">Änderungen verwerfen?</string>
+    <string name="discard_body">Deine Änderungen an diesem Countdown gehen verloren.</string>
+    <string name="discard">Verwerfen</string>
+    <string name="keep_editing">Weiter bearbeiten</string>
+
     <plurals name="unit_days">
         <item quantity="one">Tag</item>
         <item quantity="other">Tage</item>

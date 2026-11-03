@@ -62,6 +62,11 @@
     <string name="update_error">Güncelleme indirilemedi.</string>
     <string name="update_retry">Tekrar dene</string>
 
+    <string name="discard_title">Değişiklikler silinsin mi?</string>
+    <string name="discard_body">Bu geri sayımdaki değişiklikleriniz kaybolacak.</string>
+    <string name="discard">Vazgeç</string>
+    <string name="keep_editing">Düzenlemeye devam et</string>
+
     <plurals name="unit_days">
         <item quantity="one">Gün</item>
         <item quantity="other">Gün</item>

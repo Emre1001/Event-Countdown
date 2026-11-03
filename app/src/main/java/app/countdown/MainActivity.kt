@@ -88,7 +88,10 @@ private fun Root(requestedEvent: String?, onRequestHandled: () -> Unit) {
         label = "language",
     ) { lang ->
         val base = LocalContext.current
-        val localized = remember(lang, base) { AppSettings.wrap(base, lang) }
+        // Live-Konfiguration als Schlüssel: Drehen, Schriftgröße und System-Dark-Mode bleiben aktuell,
+        // weil die Activity diese Änderungen selbst verarbeitet (configChanges) statt neu zu starten.
+        val liveConfig = LocalConfiguration.current
+        val localized = remember(lang, base, liveConfig) { AppSettings.wrap(base, lang) }
         CompositionLocalProvider(
             LocalContext provides localized,
             LocalConfiguration provides localized.resources.configuration,
