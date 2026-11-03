@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.RemoteViews
 import app.countdown.MainActivity
 import app.countdown.R
+import app.countdown.data.AppSettings
 import app.countdown.data.EventRepository
 import app.countdown.model.Countdown
 import app.countdown.model.CountdownEvent
@@ -37,8 +38,10 @@ object WidgetRenderer {
         Slots(CountdownUnit.MINUTES, R.id.unit_minutes, R.id.flip_minutes, R.id.num_minutes_a, R.id.num_minutes_b, R.id.lbl_minutes, R.string.short_minutes),
     )
 
-    fun render(context: Context, widgetId: Int, layoutRes: Int): RemoteViews {
-        EventRepository.init(context)
+    fun render(baseContext: Context, widgetId: Int, layoutRes: Int): RemoteViews {
+        EventRepository.init(baseContext)
+        AppSettings.init(baseContext)
+        val context = AppSettings.wrap(baseContext) // gewählte App-Sprache auch im Widget
         val rv = RemoteViews(context.packageName, layoutRes)
         val event = EventRepository.widgetEvent(widgetId)
 
@@ -67,7 +70,7 @@ object WidgetRenderer {
         rv.setInt(R.id.bg, "setImageAlpha", (event.backgroundAlpha.coerceIn(0f, 1f) * 255).roundToInt())
 
         val remaining = Countdown.remaining(event.targetMillis, System.currentTimeMillis(), widgetUnits(event))
-        val date = Countdown.formatDate(event.targetMillis)
+        val date = Countdown.formatDate(event.targetMillis, AppSettings.locale())
 
         rv.setTextViewText(R.id.tv_title, event.title.ifBlank { context.getString(R.string.untitled) })
         rv.setTextColor(R.id.tv_title, event.accent)

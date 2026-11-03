@@ -36,6 +36,33 @@
     <string name="short_hours">Std</string>
     <string name="short_minutes">Min</string>
 
+    <string name="settings">Einstellungen</string>
+    <string name="settings_appearance">Darstellung</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Hell</string>
+    <string name="theme_dark">Dunkel</string>
+    <string name="settings_language">Sprache</string>
+    <string name="language_system">Systemsprache</string>
+    <string name="section_updates">Updates</string>
+    <string name="update_version">Version %1$s</string>
+    <string name="update_check">Nach Updates suchen</string>
+    <string name="update_checking">Suche läuft …</string>
+    <string name="update_up_to_date">Du bist auf dem neuesten Stand.</string>
+    <string name="update_check_failed">Prüfung nicht möglich. Bist du online?</string>
+    <string name="update_auto">Automatisch prüfen</string>
+    <string name="update_auto_hint">Beim Start und alle paar Stunden.</string>
+    <string name="update_available">Update verfügbar</string>
+    <string name="update_new_version">Version %1$s ist bereit.</string>
+    <string name="update_no_notes">Keine Versionshinweise.</string>
+    <string name="update_install">Installieren</string>
+    <string name="update_later">Später</string>
+    <string name="update_skip">Dieses Update überspringen</string>
+    <string name="update_downloading">Wird geladen …</string>
+    <string name="update_handoff">Android fragt dich gleich nach der Installation.</string>
+    <string name="update_permission">Erlaube Installationen aus dieser Quelle und tippe danach erneut auf Installieren.</string>
+    <string name="update_error">Das Update konnte nicht geladen werden.</string>
+    <string name="update_retry">Erneut versuchen</string>
+
     <plurals name="unit_days">
         <item quantity="one">Tag</item>
         <item quantity="other">Tage</item>

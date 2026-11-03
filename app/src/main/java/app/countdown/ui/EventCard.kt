@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,14 +96,16 @@ fun EventCard(
 
     val now = LocalNow.current.value
     val remaining = Countdown.remaining(event.targetMillis, now, event.orderedUnits)
-    val date = Countdown.formatDate(event.targetMillis)
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val date = remember(event.targetMillis, locale) { Countdown.formatDate(event.targetMillis, locale) }
 
     Column(
         modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.pressable(onClick) else Modifier)
             .clip(RoundedCornerShape(28.dp))
             .background(bg)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(28.dp))
             .padding(horizontal = 24.dp, vertical = 22.dp),
     ) {
         Text(

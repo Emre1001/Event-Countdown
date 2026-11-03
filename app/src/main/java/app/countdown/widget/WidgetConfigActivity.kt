@@ -31,9 +31,15 @@ import app.countdown.R
 import app.countdown.data.EventRepository
 import app.countdown.ui.CountdownTheme
 import app.countdown.ui.EventCard
+import app.countdown.ui.rememberDarkTheme
+import app.countdown.data.AppSettings
 
 /** Auswahl, welches Event ein Widget anzeigt (beim Hinzufügen und beim Neu-Konfigurieren). */
 class WidgetConfigActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(AppSettings.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -48,7 +54,7 @@ class WidgetConfigActivity : ComponentActivity() {
         }
 
         setContent {
-            CountdownTheme {
+            CountdownTheme(rememberDarkTheme()) {
                 val events by EventRepository.state.collectAsState()
                 Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
                     LazyColumn(

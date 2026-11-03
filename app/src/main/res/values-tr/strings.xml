@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Geri Sayım</string>
+    <string name="home_title">Geri sayımlar</string>
+    <string name="home_empty_title">Henüz bir şey planlanmadı</string>
+    <string name="home_empty_body">İlk etkinliğini eklemek için + simgesine dokun.</string>
+    <string name="add_event">Yeni geri sayım</string>
+    <string name="edit_event">Düzenle</string>
+    <string name="done">Bitti</string>
+    <string name="close">Kapat</string>
+    <string name="delete">Sil</string>
+    <string name="delete_title">Geri sayım silinsin mi?</string>
+    <string name="delete_body">Geri sayım ve ilgili tüm widget’lar kaldırılacak.</string>
+    <string name="cancel">İptal</string>
+    <string name="ok">Tamam</string>
+    <string name="field_title_hint">Etkinlik adı</string>
+    <string name="untitled">Adsız</string>
+    <string name="field_date">Tarih</string>
+    <string name="field_time">Saat</string>
+    <string name="section_display">Görünüm</string>
+    <string name="section_styles">Stiller</string>
+    <string name="section_colors">Renkler</string>
+    <string name="select_all">Tümü</string>
+    <string name="color_background">Arka plan</string>
+    <string name="color_numbers">Rakamlar</string>
+    <string name="color_accent">Vurgu</string>
+    <string name="opacity">Opaklık</string>
+    <string name="elapsed">Geçen süre</string>
+    <string name="widget_hint">Widget eklemek için: ana ekrana uzun bas → Widget’lar → Geri Sayım. Widget’lar gün, saat ve dakika gösterir.</string>
+    <string name="widget_description">Renklerinle bir geri sayım gösterir.</string>
+    <string name="widget_pick_title">Etkinlik seç</string>
+    <string name="widget_pick_empty">Önce uygulamada bir geri sayım oluştur.</string>
+    <string name="widget_open_app">Uygulamayı aç</string>
+    <string name="widget_placeholder">Etkinlik seç</string>
+    <string name="short_days">gün</string>
+    <string name="short_hours">sa</string>
+    <string name="short_minutes">dk</string>
+    <string name="settings">Ayarlar</string>
+    <string name="settings_appearance">Görünüm</string>
+    <string name="theme_system">Sistem</string>
+    <string name="theme_light">Açık</string>
+    <string name="theme_dark">Koyu</string>
+    <string name="settings_language">Dil</string>
+    <string name="language_system">Sistem dili</string>
+    <string name="section_updates">Güncellemeler</string>
+    <string name="update_version">Sürüm %1$s</string>
+    <string name="update_check">Güncellemeleri denetle</string>
+    <string name="update_checking">Denetleniyor …</string>
+    <string name="update_up_to_date">Uygulamanız güncel.</string>
+    <string name="update_check_failed">Denetlenemedi. Çevrimiçi misiniz?</string>
+    <string name="update_auto">Otomatik denetle</string>
+    <string name="update_auto_hint">Açılışta ve birkaç saatte bir.</string>
+    <string name="update_available">Güncelleme mevcut</string>
+    <string name="update_new_version">Sürüm %1$s hazır.</string>
+    <string name="update_no_notes">Sürüm notu yok.</string>
+    <string name="update_install">Yükle</string>
+    <string name="update_later">Daha sonra</string>
+    <string name="update_skip">Bu güncellemeyi atla</string>
+    <string name="update_downloading">İndiriliyor …</string>
+    <string name="update_handoff">Android yüklemeyi onaylamanızı isteyecek.</string>
+    <string name="update_permission">Bu kaynaktan yüklemeye izin verin, sonra tekrar Yükle’ye dokunun.</string>
+    <string name="update_error">Güncelleme indirilemedi.</string>
+    <string name="update_retry">Tekrar dene</string>
+
+    <plurals name="unit_days">
+        <item quantity="one">Gün</item>
+        <item quantity="other">Gün</item>
+    </plurals>
+    <plurals name="unit_hours">
+        <item quantity="one">Saat</item>
+        <item quantity="other">Saat</item>
+    </plurals>
+    <plurals name="unit_minutes">
+        <item quantity="one">Dakika</item>
+        <item quantity="other">Dakika</item>
+    </plurals>
+    <plurals name="unit_seconds">
+        <item quantity="one">Saniye</item>
+        <item quantity="other">Saniye</item>
+    </plurals>
+</resources>

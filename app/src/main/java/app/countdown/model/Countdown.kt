@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Locale
 
 data class UnitValue(val unit: CountdownUnit, val value: Long)
 
@@ -42,9 +43,8 @@ object Countdown {
         }
     }
 
-    private val formatter: DateTimeFormatter =
+    fun formatDate(targetMillis: Long, locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-
-    fun formatDate(targetMillis: Long): String =
-        formatter.format(Instant.ofEpochMilli(targetMillis).atZone(ZoneId.systemDefault()))
+            .withLocale(locale)
+            .format(Instant.ofEpochMilli(targetMillis).atZone(ZoneId.systemDefault()))
 }

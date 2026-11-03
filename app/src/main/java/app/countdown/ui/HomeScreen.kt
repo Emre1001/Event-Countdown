@@ -3,15 +3,18 @@ package app.countdown.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,11 +32,17 @@ import app.countdown.R
 import app.countdown.model.CountdownEvent
 
 @Composable
-fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (CountdownEvent) -> Unit) {
+fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (CountdownEvent) -> Unit, onSettings: () -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(onClick = onAdd, shape = CircleShape) {
+            FloatingActionButton(
+                onClick = onAdd,
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(2.dp, 2.dp, 2.dp, 2.dp),
+            ) {
                 Icon(Icons.Filled.Add, stringResource(R.string.add_event))
             }
         },
@@ -48,12 +57,18 @@ fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (Countdo
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                Text(
-                    stringResource(R.string.home_title),
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 8.dp),
-                )
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 8.dp, top = 12.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.home_title),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, stringResource(R.string.settings)) }
+                }
             }
             if (events.isEmpty()) {
                 item {
@@ -71,8 +86,8 @@ fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (Countdo
                     }
                 }
             }
-            items(events, key = { it.id }) { e ->
-                EventCard(e, Modifier.animateItem(), onClick = { onOpen(e) })
+            itemsIndexed(events, key = { _, e -> e.id }) { index, e ->
+                EventCard(e, Modifier.animateItem().staggerIn(index), onClick = { onOpen(e) })
             }
         }
     }

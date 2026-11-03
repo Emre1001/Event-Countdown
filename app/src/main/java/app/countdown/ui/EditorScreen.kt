@@ -2,6 +2,7 @@ package app.countdown.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -84,6 +85,7 @@ fun EditorScreen(
     BackHandler(onBack = onClose)
 
     val zone = ZoneId.systemDefault()
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val ldt = Instant.ofEpochMilli(draft.targetMillis).atZone(zone).toLocalDateTime()
     fun setDateTime(l: LocalDateTime) {
         draft = draft.copy(targetMillis = l.atZone(zone).toInstant().toEpochMilli())
@@ -143,12 +145,12 @@ fun EditorScreen(
                 Group {
                     ValueRow(
                         stringResource(R.string.field_date),
-                        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).format(ldt),
+                        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(ldt),
                     ) { showDate = true }
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     ValueRow(
                         stringResource(R.string.field_time),
-                        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).format(ldt),
+                        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(ldt),
                     ) { showTime = true }
                 }
 
@@ -278,7 +280,7 @@ fun EditorScreen(
 }
 
 @Composable
-private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+internal fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         modifier = modifier.padding(horizontal = 4.dp),
@@ -288,11 +290,13 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Group(padding: androidx.compose.ui.unit.Dp = 0.dp, content: @Composable () -> Unit) {
+internal fun Group(padding: androidx.compose.ui.unit.Dp = 0.dp, content: @Composable () -> Unit) {
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp)),
     ) { Column(Modifier.padding(padding)) { content() } }
 }
 
@@ -319,8 +323,8 @@ private fun UnitToggle(label: String, selected: Boolean, modifier: Modifier = Mo
     Box(
         modifier
             .height(46.dp)
-            .background(bg, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
+            .pressable(onClick)
+            .background(bg, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center,
     ) { Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }

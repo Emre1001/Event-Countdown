@@ -76,7 +76,7 @@ fun StylePresetTile(preset: StylePreset, selected: Boolean, onClick: () -> Unit)
         verticalArrangement = Arrangement.Center,
     ) {
         Text("12", color = Color(preset.text), fontSize = 22.sp, fontWeight = FontWeight.Light)
-        Text("Tage", color = Color(preset.accent), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+        Text(androidx.compose.ui.res.stringResource(app.countdown.R.string.short_days), color = Color(preset.accent), fontSize = 10.sp, fontWeight = FontWeight.Medium)
     }
 }
 
