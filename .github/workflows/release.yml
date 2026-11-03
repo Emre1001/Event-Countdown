@@ -1,6 +1,6 @@
 name: Release APK
 
-# Neues Release: Tag pushen, z. B.  git tag v1.0.1 && git push origin v1.0.1
+# Neues Release: Tag pushen, z. B.  git tag v0.0.2 && git push origin v0.0.2
 on:
   push:
     tags: ['v*']
@@ -19,28 +19,29 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Prepare signing key
+      - name: Signing key from secrets
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::Secret KEYSTORE_BASE64 fehlt. Ohne festen Schlüssel kann Android Updates nicht installieren (siehe README)."
-            exit 1
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Kein Secret KEYSTORE_BASE64 – APK wird mit einem temporären Schlüssel signiert. In-App-Updates auf spätere Versionen brauchen einen festen Schlüssel (siehe README)."
           fi
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: Build release APK
         env:
-          KEYSTORE_FILE: ${{ runner.temp }}/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ./gradlew --no-daemon assembleRelease -PversionName="$VERSION" -PversionCode="$GITHUB_RUN_NUMBER"
+          ./gradlew --no-daemon assembleRelease -PversionName="$VERSION" -PversionCode="$((100 + GITHUB_RUN_NUMBER))"
           cp app/build/outputs/apk/release/app-release.apk "EventCountdown-$VERSION.apk"
 
       - uses: softprops/action-gh-release@v2
         with:
+          name: Event Countdown ${{ github.ref_name }}
           files: EventCountdown-*.apk
           generate_release_notes: true

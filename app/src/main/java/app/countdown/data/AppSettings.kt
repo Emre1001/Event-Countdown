@@ -30,6 +30,7 @@ object AppSettings {
 
     /** Mittelpunkt (Fenster-Koordinaten) des zuletzt gedrückten Theme-Schalters für den Kreis-Reveal. */
     private var revealOrigin: Offset? = null
+    private var revealOriginAt = 0L
 
     @Synchronized
     fun init(context: Context) {
@@ -43,11 +44,17 @@ object AppSettings {
 
     fun setTheme(pref: ThemePref, origin: Offset?) {
         revealOrigin = origin
+        revealOriginAt = System.currentTimeMillis()
         prefs.edit().putString("theme", pref.name).apply()
         _theme.value = pref
     }
 
-    fun takeRevealOrigin(): Offset? = revealOrigin.also { revealOrigin = null }
+    /** Nur kurz gültig: wechselt später das System das Theme, gibt es keinen veralteten Kreis-Ursprung. */
+    fun takeRevealOrigin(): Offset? {
+        val o = revealOrigin.takeIf { System.currentTimeMillis() - revealOriginAt < 1500 }
+        revealOrigin = null
+        return o
+    }
 
     fun setLanguage(code: String) {
         prefs.edit().putString("language", code).apply()

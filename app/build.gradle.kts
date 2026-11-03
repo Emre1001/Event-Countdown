@@ -13,16 +13,17 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
+        versionName = (project.findProperty("versionName") as String?) ?: "0.0.1"
     }
 
-    // Updates funktionieren nur, wenn jede APK mit demselben Schlüssel signiert ist.
-    // Der Release-Workflow liefert ihn über Umgebungsvariablen (siehe README).
-    val releaseKeystore: String? = System.getenv("KEYSTORE_FILE")
+    // Android installiert Updates nur, wenn jede APK mit demselben Schlüssel signiert ist.
+    // Der Release-Workflow liefert den eigenen Schlüssel über Umgebungsvariablen (siehe README);
+    // ohne ihn wird mit dem Debug-Schlüssel der jeweiligen Maschine signiert.
+    val ownKeystore: String? = System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
     signingConfigs {
-        if (releaseKeystore != null) {
+        if (ownKeystore != null) {
             create("release") {
-                storeFile = file(releaseKeystore)
+                storeFile = file(ownKeystore)
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
@@ -33,7 +34,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = if (releaseKeystore != null) signingConfigs.getByName("release")
+            signingConfig = if (ownKeystore != null) signingConfigs.getByName("release")
             else signingConfigs.getByName("debug")
         }
     }

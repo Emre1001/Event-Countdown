@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generiert von tools/gen_widget_res.py. Tickt im Launcher; die Schrift wandelt "ss" per Ligatur um. -->
+<TextClock xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sec_clock"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|start"
+    android:fontFamily="@font/s_mono_300_down"
+    android:format12Hour="ss"
+    android:format24Hour="ss"
+    android:importantForAccessibility="no"
+    android:includeFontPadding="false"
+    android:singleLine="true"
+    android:textColor="#FFFFFFFF"
+    android:textSize="20sp" />

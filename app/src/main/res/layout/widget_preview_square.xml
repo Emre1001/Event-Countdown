@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Statische Vorschau in der Widget-Auswahl des Launchers. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_preview_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/f_sans_600"
+        android:text="@string/preview_title"
+        android:textColor="#FF7D9CC4"
+        android:textSize="14sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView style="@style/PreviewNumber" android:text="12" android:textSize="34sp" />
+            <TextView style="@style/PreviewLabel" android:text="@string/short_days" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:orientation="vertical">
+            <TextView style="@style/PreviewNumber" android:text="04" android:textSize="34sp" />
+            <TextView style="@style/PreviewLabel" android:text="@string/short_hours" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -6,14 +6,19 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 
-    <style name="Theme.Countdown.Widget" parent="android:Theme.DeviceDefault" />
-
-    <style name="WidgetNumber">
+    <style name="PreviewNumber">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:fontFamily">sans-serif-light</item>
-        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:fontFamily">@font/f_sans_300</item>
         <item name="android:includeFontPadding">false</item>
-        <item name="android:singleLine">true</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+    </style>
+
+    <style name="PreviewLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:fontFamily">@font/f_sans_600</item>
+        <item name="android:textColor">#FF7D9CC4</item>
+        <item name="android:textSize">11sp</item>
     </style>
 </resources>

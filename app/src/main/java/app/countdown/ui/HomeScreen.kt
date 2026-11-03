@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -36,6 +37,13 @@ import app.countdown.model.CountdownEvent
 
 @Composable
 fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (CountdownEvent) -> Unit, onSettings: () -> Unit) {
+    val seen = remember { mutableSetOf<String>() }
+    // Anstehende Events zuerst (nächstes oben), vergangene danach (jüngstes zuerst).
+    val now = System.currentTimeMillis()
+    val sorted = remember(events) {
+        val (past, upcoming) = events.partition { it.targetMillis < now }
+        upcoming.sortedBy { it.targetMillis } + past.sortedByDescending { it.targetMillis }
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
@@ -90,8 +98,14 @@ fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (Countdo
                     }
                 }
             }
-            itemsIndexed(events, key = { _, e -> e.id }) { index, e ->
-                EventCard(e, Modifier.animateItem().staggerIn(index), onClick = { onOpen(e) })
+            itemsIndexed(sorted, key = { _, e -> e.id }) { index, e ->
+                // Nur beim ersten Erscheinen gestaffelt einblenden, nicht bei jedem Zurückscrollen.
+                val first = remember(e.id) { seen.add(e.id) }
+                EventCard(
+                    e,
+                    Modifier.animateItem().then(if (first) Modifier.staggerIn(index) else Modifier),
+                    onClick = { onOpen(e) },
+                )
             }
         }
     }

@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import app.countdown.data.EventRepository
 
-/** Wird vom Alarm und bei Boot / Zeit- / Zeitzonenwechsel aufgerufen. */
+/** Alarm (Minutenwechsel) sowie Boot, Zeit-, Zeitzonen- und Sprachwechsel. */
 class TickReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         EventRepository.init(context)

@@ -59,18 +59,15 @@ object EventRepository {
     fun widgetEvent(widgetId: Int): CountdownEvent? = get(widgets.getString("event_$widgetId", null))
 
     fun unbindWidget(widgetId: Int) {
-        val e = widgets.edit().remove("event_$widgetId")
-        CountdownUnitKeys.forEach { e.remove("txt_${widgetId}_$it").remove("par_${widgetId}_$it") }
-        e.apply()
+        widgets.edit().remove("event_$widgetId").remove("parity_$widgetId").apply()
     }
 
-    // Zustand für die Flip-Animation der Widget-Zahlen (welcher der zwei Slots sichtbar ist).
-    fun flipState(widgetId: Int, unit: String): Pair<String?, Int> =
-        widgets.getString("txt_${widgetId}_$unit", null) to widgets.getInt("par_${widgetId}_$unit", 0)
+    fun widgetsFor(eventId: String): Boolean = widgets.all.any { (k, v) -> k.startsWith("event_") && v == eventId }
 
-    fun saveFlipState(widgetId: Int, unit: String, text: String, parity: Int) {
-        widgets.edit().putString("txt_${widgetId}_$unit", text).putInt("par_${widgetId}_$unit", parity).apply()
+    // Welches der beiden Bilder im Widget gerade sichtbar ist (für die Überblendung).
+    fun flipParity(widgetId: Int): Int = widgets.getInt("parity_$widgetId", 0)
+
+    fun saveFlipParity(widgetId: Int, parity: Int) {
+        widgets.edit().putInt("parity_$widgetId", parity).apply()
     }
-
-    private val CountdownUnitKeys = listOf("DAYS", "HOURS", "MINUTES")
 }

@@ -86,7 +86,12 @@ fun SettingsScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 SectionTitle(stringResource(R.string.settings_appearance))
-                Group { ThemeSegmented(theme) { p, origin -> AppSettings.setTheme(p, origin) } }
+                Group(padding = 6.dp) {
+                    SegmentedControl(
+                        listOf(stringResource(R.string.theme_system), stringResource(R.string.theme_light), stringResource(R.string.theme_dark)),
+                        ThemePref.entries.indexOf(theme),
+                    ) { i, origin -> AppSettings.setTheme(ThemePref.entries[i], origin) }
+                }
 
                 SectionTitle(stringResource(R.string.settings_language), Modifier.padding(top = 14.dp))
                 Group { LanguageRow(language) }
@@ -134,58 +139,6 @@ fun SettingsScreen(onBack: () -> Unit) {
                         Switch(checked = auto, onCheckedChange = { AppSettings.setAutoUpdate(it) })
                     }
                 }
-            }
-        }
-    }
-}
-
-/** System / Hell / Dunkel mit federnd gleitendem Indikator; meldet den Mittelpunkt für den Kreis-Reveal. */
-@Composable
-private fun ThemeSegmented(selected: ThemePref, onSelect: (ThemePref, Offset) -> Unit) {
-    val options = listOf(
-        ThemePref.SYSTEM to R.string.theme_system,
-        ThemePref.LIGHT to R.string.theme_light,
-        ThemePref.DARK to R.string.theme_dark,
-    )
-    val centers = remember { mutableStateMapOf<ThemePref, Offset>() }
-    val slots = remember { mutableStateMapOf<ThemePref, Pair<Int, Int>>() } // x, Breite (px) im Row
-    val density = LocalDensity.current
-    val target = slots[selected]
-    // Beim ersten Messen ohne Animation einrasten, danach federnd gleiten.
-    var ready by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(target != null) { if (target != null) ready = true }
-    val spec: androidx.compose.animation.core.AnimationSpec<Float> =
-        if (ready) spring(dampingRatio = 0.72f, stiffness = 380f) else androidx.compose.animation.core.snap()
-    val x by animateFloatAsState(target?.first?.toFloat() ?: 0f, spec, label = "indicatorX")
-    val w by animateFloatAsState(target?.second?.toFloat() ?: 0f, spec, label = "indicatorW")
-
-    Box(Modifier.fillMaxWidth().padding(6.dp)) {
-        if (target != null) {
-            Box(
-                Modifier
-                    .offset { IntOffset(x.roundToInt(), 0) }
-                    .width(with(density) { w.toDp() })
-                    .height(48.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
-            )
-        }
-        Row(Modifier.fillMaxWidth()) {
-            options.forEach { (pref, label) ->
-                val textColor by animateColorAsState(
-                    if (pref == selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    label = "segText",
-                )
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .onGloballyPositioned { c ->
-                            centers[pref] = c.boundsInRoot().center
-                            slots[pref] = c.positionInParent().x.roundToInt() to c.size.width
-                        }
-                        .pressable { onSelect(pref, centers[pref] ?: Offset.Zero) },
-                    contentAlignment = Alignment.Center,
-                ) { Text(stringResource(label), color = textColor, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
             }
         }
     }

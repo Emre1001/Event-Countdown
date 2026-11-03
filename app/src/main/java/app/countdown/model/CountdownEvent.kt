@@ -15,28 +15,36 @@ data class CountdownEvent(
     val id: String = UUID.randomUUID().toString(),
     val title: String = "",
     val targetMillis: Long,
-    val units: Set<CountdownUnit> = CountdownUnit.entries.toSet(),
-    val background: Int = 0xFF0B0B0F.toInt(),
-    val textColor: Int = 0xFFFFFFFF.toInt(),
-    val accent: Int = 0xFF0A84FF.toInt(),
-    val backgroundAlpha: Float = 1f,
+    val units: Set<CountdownUnit> = setOf(CountdownUnit.DAYS, CountdownUnit.HOURS, CountdownUnit.MINUTES),
+    val style: EventStyle = EventStyle(),
 ) {
     /** Ausgewählte Einheiten, immer von groß nach klein sortiert. */
     val orderedUnits: List<CountdownUnit>
         get() = CountdownUnit.entries.filter { it in units }.ifEmpty { listOf(CountdownUnit.DAYS) }
+
+    /**
+     * Einheiten im Widget. Sekunden laufen dort über eine tickende Uhr und zeigen immer den Rest
+     * innerhalb der Minute – deshalb kommen Minuten automatisch dazu, wenn Sekunden gewählt sind.
+     */
+    val widgetUnits: List<CountdownUnit>
+        get() {
+            val u = orderedUnits.toMutableSet()
+            if (CountdownUnit.SECONDS in u) u += CountdownUnit.MINUTES
+            return CountdownUnit.entries.filter { it in u }
+        }
 
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("title", title)
         put("target", targetMillis)
         put("units", JSONArray(orderedUnits.map { it.name }))
-        put("bg", background)
-        put("text", textColor)
-        put("accent", accent)
-        put("alpha", backgroundAlpha.toDouble())
+        put("style", style.toJson())
     }
 
     companion object {
+        /** Events liegen immer auf einer vollen Minute (Voraussetzung für die Widget-Sekunden). */
+        fun normalize(millis: Long): Long = millis - Math.floorMod(millis, 60_000L)
+
         fun fromJson(o: JSONObject): CountdownEvent {
             val unitsJson = o.optJSONArray("units")
             val units = buildSet {
@@ -44,14 +52,23 @@ data class CountdownEvent(
                     runCatching { CountdownUnit.valueOf(unitsJson.getString(i)) }.getOrNull()?.let(::add)
                 }
             }.ifEmpty { CountdownUnit.entries.toSet() }
+            val style = o.optJSONObject("style")?.let { EventStyle.fromJson(it) } ?: legacyStyle(o)
             return CountdownEvent(
                 id = o.getString("id"),
                 title = o.optString("title", ""),
-                targetMillis = o.getLong("target"),
+                targetMillis = normalize(o.getLong("target")),
                 units = units,
-                background = o.optInt("bg", 0xFF0B0B0F.toInt()),
-                textColor = o.optInt("text", 0xFFFFFFFF.toInt()),
-                accent = o.optInt("accent", 0xFF0A84FF.toInt()),
+                style = style,
+            )
+        }
+
+        /** Übernahme der Farben aus Version 1 (bg / text / accent / alpha). */
+        private fun legacyStyle(o: JSONObject): EventStyle {
+            val d = EventStyle()
+            return d.copy(
+                background = Fill.solid(o.optInt("bg", d.background.first)),
+                numbers = Fill.solid(o.optInt("text", d.numbers.first)),
+                accent = Fill.solid(o.optInt("accent", d.accent.first)),
                 backgroundAlpha = o.optDouble("alpha", 1.0).toFloat(),
             )
         }

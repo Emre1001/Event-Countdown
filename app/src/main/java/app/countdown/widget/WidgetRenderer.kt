@@ -1,50 +1,88 @@
 package app.countdown.widget
 
 import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.util.SizeF
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import app.countdown.MainActivity
 import app.countdown.R
 import app.countdown.data.AppSettings
 import app.countdown.data.EventRepository
-import app.countdown.model.Countdown
 import app.countdown.model.CountdownEvent
-import app.countdown.model.CountdownUnit
-import kotlin.math.roundToInt
+import app.countdown.model.WidgetFormat
+import app.countdown.render.FontRes
+import app.countdown.render.WidgetPainter
+import kotlin.math.min
+import kotlin.math.sqrt
 
 /**
- * Baut die RemoteViews. Widgets zeigen Tage, Stunden und Minuten (Android-Widgets können
- * nicht im Sekundentakt aktualisieren); die Zahlen wechseln per ViewFlipper mit
- * Slide-/Fade-Animation, sobald sich ein Wert ändert.
+ * Baut die RemoteViews eines Widgets: das komplette Design als Bild (Farben, Verläufe, Bilder,
+ * Schriften, freie Positionen) und – falls gewählt – einen TextClock für die Sekunden, der im
+ * Launcher selbst tickt. Bei jedem Minutenwechsel wird weich übergeblendet.
  */
 object WidgetRenderer {
 
-    /** Einheiten, die im Widget darstellbar sind. */
-    fun widgetUnits(event: CountdownEvent): List<CountdownUnit> =
-        event.orderedUnits.filter { it != CountdownUnit.SECONDS }.ifEmpty { listOf(CountdownUnit.MINUTES) }
-
-    private class Slots(
-        val unit: CountdownUnit,
-        val container: Int, val flipper: Int, val a: Int, val b: Int, val label: Int, val labelRes: Int,
-    )
-
-    private val slots = listOf(
-        Slots(CountdownUnit.DAYS, R.id.unit_days, R.id.flip_days, R.id.num_days_a, R.id.num_days_b, R.id.lbl_days, R.string.short_days),
-        Slots(CountdownUnit.HOURS, R.id.unit_hours, R.id.flip_hours, R.id.num_hours_a, R.id.num_hours_b, R.id.lbl_hours, R.string.short_hours),
-        Slots(CountdownUnit.MINUTES, R.id.unit_minutes, R.id.flip_minutes, R.id.num_minutes_a, R.id.num_minutes_b, R.id.lbl_minutes, R.string.short_minutes),
-    )
-
-    fun render(baseContext: Context, widgetId: Int, layoutRes: Int): RemoteViews {
+    fun render(baseContext: Context, widgetId: Int, fallbackFormat: WidgetFormat): RemoteViews {
         EventRepository.init(baseContext)
         AppSettings.init(baseContext)
-        val context = AppSettings.wrap(baseContext) // gewählte App-Sprache auch im Widget
-        val rv = RemoteViews(context.packageName, layoutRes)
+        val context = AppSettings.wrap(baseContext)
         val event = EventRepository.widgetEvent(widgetId)
+        val options = AppWidgetManager.getInstance(baseContext).getAppWidgetOptions(widgetId)
+        val sizes = sizesDp(options, fallbackFormat)
+        val parity = 1 - EventRepository.flipParity(widgetId) // jedes Update blendet auf das andere Bild
+        EventRepository.saveFlipParity(widgetId, parity)
 
+        // Speicherbudget des Launchers für Widget-Bitmaps: Bildschirmfläche × 4 B × 1,5 (mit Reserve).
+        val dm = context.resources.displayMetrics
+        val budgetPx = dm.widthPixels.toLong() * dm.heightPixels * 1.5 * 0.7 / sizes.size
+
+        val views = sizes.map { (w, h) -> build(context, widgetId, event, w, h, parity, budgetPx) }
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && sizes.size > 1) {
+            RemoteViews(sizes.indices.associate { SizeF(sizes[it].first, sizes[it].second) to views[it] })
+        } else {
+            views.first()
+        }
+    }
+
+    /** Hochformat-Größe immer, Querformat zusätzlich (Android 12+), damit die Sekunden genau sitzen. */
+    private fun sizesDp(options: Bundle, fallback: WidgetFormat): List<Pair<Float, Float>> {
+        val list = mutableListOf<Pair<Float, Float>>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            @Suppress("DEPRECATION")
+            val s = options.getParcelableArrayList<SizeF>(AppWidgetManager.OPTION_APPWIDGET_SIZES)
+            s?.filter { it.width > 0 && it.height > 0 }?.forEach { list += it.width to it.height }
+        }
+        if (list.isEmpty()) {
+            val minW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+            val maxH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+            val maxW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
+            val minH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
+            if (minW > 0 && maxH > 0) list += minW.toFloat() to maxH.toFloat()
+            if (maxW > 0 && minH > 0 && (maxW != minW || minH != maxH)) list += maxW.toFloat() to minH.toFloat()
+        }
+        if (list.isEmpty()) list += if (fallback == WidgetFormat.WIDE) 320f to 160f else 160f to 160f
+        return list.distinct().take(2)
+    }
+
+    private fun build(
+        context: Context,
+        widgetId: Int,
+        event: CountdownEvent?,
+        wDp: Float,
+        hDp: Float,
+        parity: Int,
+        budgetPx: Double,
+    ): RemoteViews {
+        val rv = RemoteViews(context.packageName, R.layout.widget_root)
         val open = Intent(context, MainActivity::class.java).apply {
             data = Uri.parse("countdown://widget/$widgetId")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -55,63 +93,46 @@ object WidgetRenderer {
             PendingIntent.getActivity(context, widgetId, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
         )
 
+        val density = context.resources.displayMetrics.density
+        val w = wDp * density
+        val h = hDp * density
+        val scale = min(1.0, sqrt(budgetPx / (w * h))).toFloat()
+        val bmp = Bitmap.createBitmap((w * scale).toInt().coerceAtLeast(1), (h * scale).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        canvas.scale(scale, scale)
+
+        rv.removeAllViews(R.id.sec_slot)
         if (event == null) {
-            rv.setInt(R.id.bg, "setColorFilter", 0xFF1C1C1E.toInt())
-            rv.setInt(R.id.bg, "setImageAlpha", 255)
-            rv.setTextViewText(R.id.tv_title, context.getString(R.string.widget_placeholder))
-            rv.setTextColor(R.id.tv_title, Color.WHITE)
-            rv.setTextViewText(R.id.tv_sub, "")
-            slots.forEach { rv.setViewVisibility(it.container, View.GONE) }
-            return rv
-        }
-
-        // Hintergrund: Farbe per Filter (deckend), Transparenz separat per Bild-Alpha.
-        rv.setInt(R.id.bg, "setColorFilter", event.background or 0xFF000000.toInt())
-        rv.setInt(R.id.bg, "setImageAlpha", (event.backgroundAlpha.coerceIn(0f, 1f) * 255).roundToInt())
-
-        val remaining = Countdown.remaining(event.targetMillis, System.currentTimeMillis(), widgetUnits(event))
-        val date = Countdown.formatDate(event.targetMillis, AppSettings.locale())
-
-        rv.setTextViewText(R.id.tv_title, event.title.ifBlank { context.getString(R.string.untitled) })
-        rv.setTextColor(R.id.tv_title, event.accent)
-        rv.setTextViewText(
-            R.id.tv_sub,
-            if (remaining.isPast) context.getString(R.string.elapsed) + " · " + date else date,
-        )
-        rv.setTextColor(R.id.tv_sub, (event.accent and 0xFFFFFF) or (0xB3 shl 24))
-
-        val byUnit = remaining.values.associateBy { it.unit }
-        val speech = StringBuilder(event.title).append(": ")
-        slots.forEach { s ->
-            val uv = byUnit[s.unit]
-            if (uv == null) {
-                rv.setViewVisibility(s.container, View.GONE)
-                return@forEach
+            WidgetPainter.paintPlaceholder(context, canvas, w, h, context.getString(R.string.widget_placeholder))
+        } else {
+            val format = if (wDp / hDp > 1.45f) WidgetFormat.WIDE else WidgetFormat.SQUARE
+            val result = WidgetPainter.Result()
+            WidgetPainter.paint(
+                context, canvas, w, h, event, format, System.currentTimeMillis(),
+                drawSeconds = false, locale = AppSettings.locale(), result = result,
+            )
+            result.seconds?.let { s ->
+                val clock = RemoteViews(
+                    context.packageName,
+                    FontRes.secondsLayout(event.style.font, event.style.numberWeight, s.countdown),
+                )
+                clock.setTextViewTextSize(R.id.sec_clock, TypedValue.COMPLEX_UNIT_PX, s.textSizePx)
+                clock.setTextColor(R.id.sec_clock, s.color)
+                rv.addView(R.id.sec_slot, clock)
+                rv.setViewPadding(R.id.sec_slot, s.left.toInt(), s.top.toInt(), 0, 0)
             }
-            rv.setViewVisibility(s.container, View.VISIBLE)
-            val isFirst = remaining.values.first().unit == s.unit
-            val text = if (isFirst) uv.value.toString() else uv.value.toString().padStart(2, '0')
-            setFlipped(rv, widgetId, s, text, event.textColor)
-            val label = context.getString(s.labelRes)
-            rv.setTextViewText(s.label, label)
-            rv.setTextColor(s.label, event.accent)
-            speech.append(uv.value).append(' ').append(label).append(' ')
+            rv.setContentDescription(R.id.root, describe(context, event))
         }
-        rv.setContentDescription(R.id.root, speech.toString().trim())
+        rv.setViewVisibility(R.id.sec_slot, View.VISIBLE)
+        rv.setImageViewBitmap(if (parity == 0) R.id.img_a else R.id.img_b, bmp)
+        rv.setDisplayedChild(R.id.flip, parity)
         return rv
     }
 
-    /**
-     * Schreibt den neuen Wert in den unsichtbaren der beiden Flipper-Slots und blättert dorthin,
-     * wenn sich der Wert geändert hat – das löst die In-/Out-Animation aus.
-     */
-    private fun setFlipped(rv: RemoteViews, widgetId: Int, s: Slots, text: String, color: Int) {
-        val (last, parity) = EventRepository.flipState(widgetId, s.unit.name)
-        val next = if (last != null && last != text) 1 - parity else parity
-        rv.setTextViewText(if (next == 0) s.a else s.b, text)
-        rv.setTextColor(s.a, color)
-        rv.setTextColor(s.b, color)
-        rv.setDisplayedChild(s.flipper, next)
-        EventRepository.saveFlipState(widgetId, s.unit.name, text, next)
+    private fun describe(context: Context, event: CountdownEvent): String {
+        val rem = app.countdown.model.Countdown.remaining(event.targetMillis, System.currentTimeMillis(), event.widgetUnits)
+        return event.title + ": " + rem.values.joinToString(" ") {
+            it.value.toString() + " " + context.getString(WidgetPainter.shortLabel(it.unit))
+        }
     }
 }

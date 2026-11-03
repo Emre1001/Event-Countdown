@@ -3,7 +3,7 @@ package app.countdown
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedDispatcherOwner
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -96,7 +96,8 @@ private fun Root(requestedEvent: String?, onRequestHandled: () -> Unit) {
             LocalContext provides localized,
             LocalConfiguration provides localized.resources.configuration,
             // Der lokalisierte Context kennt die Activity nicht mehr; Zurück-Geste explizit durchreichen.
-            LocalOnBackPressedDispatcherOwner provides (base as? OnBackPressedDispatcherOwner),
+            LocalOnBackPressedDispatcherOwner provides (base as ComponentActivity),
+            LocalActivityResultRegistryOwner provides (base as ComponentActivity),
         ) {
             ThemeRevealHost { dark, overlay ->
                 CountdownTheme(dark) { App(nav, overlay, requestedEvent, onRequestHandled) }

@@ -6,30 +6,32 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import app.countdown.R
+import android.os.Build
 import app.countdown.data.EventRepository
 import app.countdown.model.Countdown
+import app.countdown.model.CountdownUnit
+import app.countdown.model.WidgetFormat
 
 object WidgetUpdater {
     private const val ACTION_TICK = "app.countdown.TICK"
 
     private val providers = listOf(
-        SmallWidgetProvider::class.java to R.layout.widget_small,
-        WideWidgetProvider::class.java to R.layout.widget_wide,
+        SmallWidgetProvider::class.java to WidgetFormat.SQUARE,
+        WideWidgetProvider::class.java to WidgetFormat.WIDE,
     )
 
     fun updateWidget(context: Context, widgetId: Int) {
         val mgr = AppWidgetManager.getInstance(context)
         val cls = mgr.getAppWidgetInfo(widgetId)?.provider?.className ?: return
-        val layout = providers.firstOrNull { it.first.name == cls }?.second ?: return
-        mgr.updateAppWidget(widgetId, WidgetRenderer.render(context, widgetId, layout))
+        val format = providers.firstOrNull { it.first.name == cls }?.second ?: return
+        mgr.updateAppWidget(widgetId, WidgetRenderer.render(context, widgetId, format))
     }
 
     fun updateAll(context: Context) {
         val mgr = AppWidgetManager.getInstance(context)
-        providers.forEach { (cls, layout) ->
+        providers.forEach { (cls, format) ->
             mgr.getAppWidgetIds(ComponentName(context, cls)).forEach { id ->
-                mgr.updateAppWidget(id, WidgetRenderer.render(context, id, layout))
+                runCatching { mgr.updateAppWidget(id, WidgetRenderer.render(context, id, format)) }
             }
         }
         schedule(context)
@@ -47,8 +49,9 @@ object WidgetUpdater {
     )
 
     /**
-     * Plant genau den nächsten Zeitpunkt, an dem sich eine sichtbare Zahl ändert
-     * (kein fester Minutentakt, solange nur Tage/Stunden angezeigt werden).
+     * Plant genau den Moment, in dem sich die nächste sichtbare Zahl ändert. Sekunden zählen hier
+     * nicht – die tickt der Launcher selbst. Nicht weckender Alarm (RTC): bei ausgeschaltetem
+     * Bildschirm wird nichts gerechnet, beim Einschalten sofort nachgeholt.
      */
     fun schedule(context: Context) {
         EventRepository.init(context)
@@ -58,18 +61,15 @@ object WidgetUpdater {
         val next = allWidgetIds(context)
             .mapNotNull { EventRepository.widgetEvent(it) }
             .minOfOrNull { e ->
-                Countdown.nextChangeMillis(e.targetMillis, now, WidgetRenderer.widgetUnits(e).last())
+                val finest = e.widgetUnits.lastOrNull { it != CountdownUnit.SECONDS } ?: CountdownUnit.MINUTES
+                Countdown.nextChangeMillis(e.targetMillis, now, finest)
             }
         if (next == null) {
             alarm.cancel(pi)
             return
         }
-        // Mindestens 1 s in der Zukunft; kleine Verzögerung, damit die Sekunde sicher gewechselt hat.
-        val at = maxOf(next + 300, now + 1000)
-        alarm.setAndAllowWhileIdle(AlarmManager.RTC, at, pi)
-    }
-
-    fun cancel(context: Context) {
-        (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(pendingIntent(context))
+        val at = maxOf(next + 40, now + 500)
+        val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarm.canScheduleExactAlarms()
+        if (exact) alarm.setExact(AlarmManager.RTC, at, pi) else alarm.setWindow(AlarmManager.RTC, at, 5_000, pi)
     }
 }
