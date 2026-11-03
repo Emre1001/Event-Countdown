@@ -1,9 +1,15 @@
 name: Release APK
 
-# Neues Release: Tag pushen, z. B.  git tag v0.0.2 && git push origin v0.0.2
+# Neues Release: Tag pushen (git tag v0.0.2 && git push origin v0.0.2)
+# oder unter Actions → "Release APK" → "Run workflow" eine Version eingeben.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version ohne v, z. B. 0.0.2'
+        required: true
 
 permissions:
   contents: write
@@ -36,12 +42,16 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then VERSION="${GITHUB_REF_NAME#v}"; fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           ./gradlew --no-daemon assembleRelease -PversionName="$VERSION" -PversionCode="$((100 + GITHUB_RUN_NUMBER))"
           cp app/build/outputs/apk/release/app-release.apk "EventCountdown-$VERSION.apk"
 
       - uses: softprops/action-gh-release@v2
         with:
-          name: Event Countdown ${{ github.ref_name }}
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: Event Countdown ${{ env.VERSION }}
           files: EventCountdown-*.apk
           generate_release_notes: true

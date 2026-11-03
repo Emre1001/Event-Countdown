@@ -44,7 +44,7 @@ python3 tools/gen_widget_res.py
 Ein Release entsteht durch einen Tag:
 
 ```
-git tag v0.0.2 && git push origin v0.0.2
+git tag v0.0.2 && git push origin v0.0.2   # oder: Actions → „Release APK“ → „Run workflow“
 ```
 
 Der Workflow `release.yml` baut die APK und hängt sie an das GitHub Release. Die App findet es über
