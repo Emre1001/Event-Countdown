@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Countdown</string>
+    <string name="home_title">Countdowns</string>
+    <string name="home_empty_title">Nothing planned yet</string>
+    <string name="home_empty_body">Tap + to add your first event.</string>
+    <string name="add_event">New countdown</string>
+    <string name="edit_event">Edit</string>
+    <string name="done">Done</string>
+    <string name="close">Close</string>
+    <string name="delete">Delete</string>
+    <string name="delete_title">Delete countdown?</string>
+    <string name="delete_body">The countdown and all its widgets will be removed.</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="field_title_hint">Event name</string>
+    <string name="untitled">Untitled</string>
+    <string name="field_date">Date</string>
+    <string name="field_time">Time</string>
+    <string name="section_display">Display</string>
+    <string name="section_styles">Styles</string>
+    <string name="section_colors">Colors</string>
+    <string name="select_all">All</string>
+    <string name="color_background">Background</string>
+    <string name="color_numbers">Numbers</string>
+    <string name="color_accent">Accent</string>
+    <string name="opacity">Opacity</string>
+    <string name="elapsed">Elapsed</string>
+    <string name="widget_hint">Add a widget: long-press the home screen → Widgets → Countdown. Widgets show days, hours and minutes.</string>
+    <string name="widget_description">Shows a countdown in your colors.</string>
+    <string name="widget_pick_title">Choose event</string>
+    <string name="widget_pick_empty">Create a countdown in the app first.</string>
+    <string name="widget_open_app">Open app</string>
+    <string name="widget_placeholder">Choose event</string>
+    <string name="short_days">days</string>
+    <string name="short_hours">hrs</string>
+    <string name="short_minutes">min</string>
+
+    <plurals name="unit_days">
+        <item quantity="one">Day</item>
+        <item quantity="other">Days</item>
+    </plurals>
+    <plurals name="unit_hours">
+        <item quantity="one">Hour</item>
+        <item quantity="other">Hours</item>
+    </plurals>
+    <plurals name="unit_minutes">
+        <item quantity="one">Minute</item>
+        <item quantity="other">Minutes</item>
+    </plurals>
+    <plurals name="unit_seconds">
+        <item quantity="one">Second</item>
+        <item quantity="other">Seconds</item>
+    </plurals>
+</resources>

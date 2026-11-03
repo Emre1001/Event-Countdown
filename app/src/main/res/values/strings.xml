@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Countdown</string>
+    <string name="home_title">Countdowns</string>
+    <string name="home_empty_title">Noch nichts geplant</string>
+    <string name="home_empty_body">Tippe auf +, um dein erstes Event anzulegen.</string>
+    <string name="add_event">Neuer Countdown</string>
+    <string name="edit_event">Bearbeiten</string>
+    <string name="done">Fertig</string>
+    <string name="close">Schließen</string>
+    <string name="delete">Löschen</string>
+    <string name="delete_title">Countdown löschen?</string>
+    <string name="delete_body">Der Countdown und alle zugehörigen Widgets werden entfernt.</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="ok">OK</string>
+    <string name="field_title_hint">Name des Events</string>
+    <string name="untitled">Unbenannt</string>
+    <string name="field_date">Datum</string>
+    <string name="field_time">Uhrzeit</string>
+    <string name="section_display">Anzeige</string>
+    <string name="section_styles">Stile</string>
+    <string name="section_colors">Farben</string>
+    <string name="select_all">Alle</string>
+    <string name="color_background">Hintergrund</string>
+    <string name="color_numbers">Zahlen</string>
+    <string name="color_accent">Akzent</string>
+    <string name="opacity">Deckkraft</string>
+    <string name="elapsed">Vergangen</string>
+    <string name="widget_hint">Widget hinzufügen: Startbildschirm lange drücken → Widgets → Countdown. Im Widget werden Tage, Stunden und Minuten angezeigt.</string>
+    <string name="widget_description">Zeigt einen Countdown mit deinen Farben.</string>
+    <string name="widget_pick_title">Event wählen</string>
+    <string name="widget_pick_empty">Lege zuerst in der App einen Countdown an.</string>
+    <string name="widget_open_app">App öffnen</string>
+    <string name="widget_placeholder">Event wählen</string>
+    <string name="short_days">Tage</string>
+    <string name="short_hours">Std</string>
+    <string name="short_minutes">Min</string>
+
+    <plurals name="unit_days">
+        <item quantity="one">Tag</item>
+        <item quantity="other">Tage</item>
+    </plurals>
+    <plurals name="unit_hours">
+        <item quantity="one">Stunde</item>
+        <item quantity="other">Stunden</item>
+    </plurals>
+    <plurals name="unit_minutes">
+        <item quantity="one">Minute</item>
+        <item quantity="other">Minuten</item>
+    </plurals>
+    <plurals name="unit_seconds">
+        <item quantity="one">Sekunde</item>
+        <item quantity="other">Sekunden</item>
+    </plurals>
+</resources>
