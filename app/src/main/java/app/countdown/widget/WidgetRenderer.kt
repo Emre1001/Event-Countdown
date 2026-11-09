@@ -181,13 +181,32 @@ object WidgetRenderer {
             rv.setDisplayedChild(flips[i], p)
         }
 
-        // Sekunden (tickt im Launcher)
+        // Sekunden: tickt im Launcher selbst, ohne dass die App laufen muss.
         result.seconds?.let { s ->
-            val clock = RemoteViews(context.packageName, FontRes.secondsLayout(event.style.digitFont, event.style.numberWeight, s.countdown))
-            clock.setTextViewTextSize(R.id.sec_clock, TypedValue.COMPLEX_UNIT_PX, s.textSizePx)
-            clock.setTextColor(R.id.sec_clock, s.color)
-            rv.addView(R.id.sec_slot, clock)
-            rv.setViewPadding(R.id.sec_slot, s.left.toInt(), s.top.toInt(), 0, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+: Countdown-Chronometer bis zum Ziel. Er zeigt "MM:SS" bzw. "H:MM:SS";
+                // sein Rahmen ist genau zwei Ziffern breit und schneidet den Rest ab. Rechnet direkt
+                // gegen das Ziel – zählt also immer richtig herum, auch nach langem Bildschirm-aus.
+                val target = event.effectiveTarget(now)
+                val wallToElapsed = android.os.SystemClock.elapsedRealtime() - System.currentTimeMillis()
+                // +999 ms: wie in der App wird beim Herunterzählen aufgerundet (bei 0,3 s Rest steht noch 1).
+                val base = if (s.countdown) target + 999 + wallToElapsed else target + wallToElapsed
+                val chrono = RemoteViews(context.packageName, FontRes.chronoLayout(event.style.digitFont, event.style.numberWeight))
+                chrono.setTextViewTextSize(R.id.sec_chrono, TypedValue.COMPLEX_UNIT_PX, s.textSizePx)
+                chrono.setTextColor(R.id.sec_chrono, s.color)
+                chrono.setChronometerCountDown(R.id.sec_chrono, s.countdown)
+                chrono.setChronometer(R.id.sec_chrono, base, null, true)
+                chrono.setViewLayoutWidth(R.id.sec_clip, kotlin.math.ceil(s.digitsWidth + 1f), TypedValue.COMPLEX_UNIT_PX)
+                rv.addView(R.id.sec_slot, chrono)
+                rv.setViewPadding(R.id.sec_slot, s.left.toInt(), s.plainTop.toInt(), 0, 0)
+            } else {
+                // Android 8–11: TextClock mit Ligatur-Schrift ("ss" -> verbleibende Sekunden).
+                val clock = RemoteViews(context.packageName, FontRes.secondsLayout(event.style.digitFont, event.style.numberWeight, s.countdown))
+                clock.setTextViewTextSize(R.id.sec_clock, TypedValue.COMPLEX_UNIT_PX, s.textSizePx)
+                clock.setTextColor(R.id.sec_clock, s.color)
+                rv.addView(R.id.sec_slot, clock)
+                rv.setViewPadding(R.id.sec_slot, s.left.toInt(), s.top.toInt(), 0, 0)
+            }
         }
 
         // Vordergrund

@@ -44,7 +44,16 @@ import kotlin.math.min
 object WidgetPainter {
 
     /** Wo die tickenden Widget-Sekunden (TextClock) liegen müssen. */
-    data class SecondsSlot(val left: Float, val top: Float, val textSizePx: Float, val color: Int, val countdown: Boolean)
+    data class SecondsSlot(
+        val left: Float,
+        val top: Float,
+        val textSizePx: Float,
+        val color: Int,
+        val countdown: Boolean,
+        /** Oberkante und Breite (2 Ziffern) mit der normalen Zahlen-Schrift – für den Chronometer (Android 12+). */
+        val plainTop: Float = top,
+        val digitsWidth: Float = 0f,
+    )
 
     /** Eine Zahl als eigene Ebene (Widget: je Einheit animierbar). */
     data class NumberLayer(
@@ -461,6 +470,8 @@ object WidgetPainter {
                         color = if (style.numbers.material == Material.COLOR) style.numbers.colorAt(gradientT(style.numbers, t))
                         else Fill.lerpColor(style.numbers.first, Color.WHITE, 0.55f),
                         countdown = !past,
+                        plainTop = baseline + nfm.ascent,
+                        digitsWidth = numPaint.apply { textSize = numberSize }.measureText("00"),
                     )
                 }
                 layers -> result?.numbers?.add(NumberLayer(uv.unit, numbers[i], x, baseline, numberSize, area, box))

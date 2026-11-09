@@ -171,3 +171,48 @@ for name, body in ANIM_XML.items():
     with open(os.path.join(ROOT, "res", "anim", name + ".xml"), "w") as f:
         f.write('<?xml version="1.0" encoding="utf-8"?>\n<set xmlns:android="http://schemas.android.com/apk/res/android"\n    android:interpolator="@android:interpolator/fast_out_slow_in">\n    %s\n</set>\n' % body)
 print("roots ok")
+
+
+# --- Android 12+: Sekunden über einen Countdown-Chronometer (unabhängig von Schrift-Ligaturen) ---
+# Der Chronometer zeigt "MM:SS" bzw. "H:MM:SS" bis zum Ziel. Er ist breiter als sein Rahmen und
+# rechtsbündig; der Rahmen wird zur Laufzeit genau zwei Ziffern breit gesetzt und schneidet den Rest ab.
+CHRONO = """<?xml version="1.0" encoding="utf-8"?>
+<!-- Generiert von tools/gen_widget_res.py. Rahmen (Breite = 2 Ziffern, zur Laufzeit) schneidet "MM:" ab. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sec_clip"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|start"
+    android:clipChildren="true"
+    android:clipToPadding="true">
+
+    <Chronometer
+        android:id="@+id/sec_chrono"
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:fontFamily="@font/{font}"
+        android:gravity="end"
+        android:importantForAccessibility="no"
+        android:includeFontPadding="false"
+        android:singleLine="true"
+        android:textColor="#FFFFFFFF"
+        android:textSize="20sp" />
+</FrameLayout>
+"""
+for fam, _ in FAMS:
+    for w, _ in WEIGHTS:
+        with open(os.path.join(ROOT, "res", "layout", "w_c_%s_%d.xml" % (fam, w)), "w") as f:
+            f.write(CHRONO.format(font="f_%s_%d" % (fam, w)))
+
+kt_path = os.path.join(ROOT, "java", "app", "countdown", "render", "FontRes.kt")
+src = open(kt_path).read().rstrip()
+assert src.endswith("}")
+src = src[:-1] + """
+    fun chronoLayout(font: FontChoice, weight: WeightChoice): Int = when (font) {
+%s
+    }
+}
+""" % when_block(lambda fam, w: "R.layout.w_c_%s_%d" % (fam, w))
+open(kt_path, "w").write(src)
+print("chrono ok")

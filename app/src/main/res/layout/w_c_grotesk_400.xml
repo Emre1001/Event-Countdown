@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generiert von tools/gen_widget_res.py. Rahmen (Breite = 2 Ziffern, zur Laufzeit) schneidet "MM:" ab. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sec_clip"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|start"
+    android:clipChildren="true"
+    android:clipToPadding="true">
+
+    <Chronometer
+        android:id="@+id/sec_chrono"
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:fontFamily="@font/f_grotesk_400"
+        android:gravity="end"
+        android:importantForAccessibility="no"
+        android:includeFontPadding="false"
+        android:singleLine="true"
+        android:textColor="#FFFFFFFF"
+        android:textSize="20sp" />
+</FrameLayout>

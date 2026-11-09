@@ -176,4 +176,61 @@ internal object FontRes {
             WeightChoice.BOLD -> if (countdown) R.layout.w_s_tech_800_down else R.layout.w_s_tech_800_up
         }
     }
+
+    fun chronoLayout(font: FontChoice, weight: WeightChoice): Int = when (font) {
+        FontChoice.SANS -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_sans_300
+            WeightChoice.REGULAR -> R.layout.w_c_sans_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_sans_600
+            WeightChoice.BOLD -> R.layout.w_c_sans_800
+        }
+        FontChoice.ROUNDED -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_rounded_300
+            WeightChoice.REGULAR -> R.layout.w_c_rounded_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_rounded_600
+            WeightChoice.BOLD -> R.layout.w_c_rounded_800
+        }
+        FontChoice.SERIF -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_serif_300
+            WeightChoice.REGULAR -> R.layout.w_c_serif_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_serif_600
+            WeightChoice.BOLD -> R.layout.w_c_serif_800
+        }
+        FontChoice.MONO -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_mono_300
+            WeightChoice.REGULAR -> R.layout.w_c_mono_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_mono_600
+            WeightChoice.BOLD -> R.layout.w_c_mono_800
+        }
+        FontChoice.GEO -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_geo_300
+            WeightChoice.REGULAR -> R.layout.w_c_geo_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_geo_600
+            WeightChoice.BOLD -> R.layout.w_c_geo_800
+        }
+        FontChoice.GROTESK -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_grotesk_300
+            WeightChoice.REGULAR -> R.layout.w_c_grotesk_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_grotesk_600
+            WeightChoice.BOLD -> R.layout.w_c_grotesk_800
+        }
+        FontChoice.DISPLAY -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_display_300
+            WeightChoice.REGULAR -> R.layout.w_c_display_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_display_600
+            WeightChoice.BOLD -> R.layout.w_c_display_800
+        }
+        FontChoice.HAND -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_hand_300
+            WeightChoice.REGULAR -> R.layout.w_c_hand_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_hand_600
+            WeightChoice.BOLD -> R.layout.w_c_hand_800
+        }
+        FontChoice.TECH -> when (weight) {
+            WeightChoice.LIGHT -> R.layout.w_c_tech_300
+            WeightChoice.REGULAR -> R.layout.w_c_tech_400
+            WeightChoice.SEMIBOLD -> R.layout.w_c_tech_600
+            WeightChoice.BOLD -> R.layout.w_c_tech_800
+        }
+    }
 }
