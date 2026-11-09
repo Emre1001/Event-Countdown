@@ -185,6 +185,17 @@
     <string name="photo_border">Kenarlık</string>
     <string name="photo_overflow_hint">Fotoğraflar kenardan taşabilir – oraya sürüklemen yeterli.</string>
 
+    <string name="section_widgets">Widget’lar</string>
+    <string name="battery_title">Pil optimizasyonu</string>
+    <string name="battery_on">Açık – widget’lar durabilir</string>
+    <string name="battery_off">Kapalı – widget’lar düzenli saymaya devam eder</string>
+    <string name="battery_action">Kapat</string>
+    <string name="autostart_title">Otomatik başlatma (Xiaomi)</string>
+    <string name="autostart_hint">Sistemin widget’lar için uygulamayı başlatabilmesi için izin ver.</string>
+    <string name="autostart_action">Aç</string>
+    <string name="widget_stall_title">Widget’ların duruyor mu?</string>
+    <string name="widget_stall_body">Telefonun uygulamayı arka planda kısıtlıyor. Geri Sayım için pil optimizasyonunu kapat; günler, saatler ve dakikalar zamanında saymaya devam eder.</string>
+
     <plurals name="unit_years">
         <item quantity="one">Yıl</item>
         <item quantity="other">Yıl</item>

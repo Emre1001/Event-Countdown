@@ -6,12 +6,15 @@ import android.content.Intent
 import app.countdown.data.EventRepository
 import app.countdown.data.Reminders
 
-/** Alarm (Minutenwechsel) sowie Boot, Zeit-, Zeitzonen- und Sprachwechsel. */
+/** Alarm (Minutenwechsel) sowie Boot, App-Update, Zeit-, Zeitzonen- und Sprachwechsel. */
 class TickReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         EventRepository.init(context)
-        WidgetUpdater.updateAll(context)
-        // Nach Neustart, Update oder Zeitänderung auch die Erinnerungen neu planen.
-        if (intent.action != "app.countdown.TICK") Reminders.schedule(context)
+        val pending = goAsync()
+        val isTick = intent.action == "app.countdown.TICK"
+        WidgetUpdater.refreshInBackground(context, pending) {
+            // Nach Neustart, Update oder Zeitänderung auch die Erinnerungen neu planen.
+            if (!isTick) Reminders.schedule(context)
+        }
     }
 }

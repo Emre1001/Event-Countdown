@@ -186,6 +186,17 @@
     <string name="photo_border">Border</string>
     <string name="photo_overflow_hint">Photos may stick out over the edge – just drag them there.</string>
 
+    <string name="section_widgets">Widgets</string>
+    <string name="battery_title">Battery optimization</string>
+    <string name="battery_on">On – widgets may stop updating</string>
+    <string name="battery_off">Off – widgets keep counting reliably</string>
+    <string name="battery_action">Turn off</string>
+    <string name="autostart_title">Autostart (Xiaomi)</string>
+    <string name="autostart_hint">Allow it so the system may start the app for widgets.</string>
+    <string name="autostart_action">Open</string>
+    <string name="widget_stall_title">Do your widgets stop counting?</string>
+    <string name="widget_stall_body">Your phone throttles the app in the background. Turn off battery optimization for Countdown so days, hours and minutes keep counting on time.</string>
+
     <plurals name="unit_years">
         <item quantity="one">Year</item>
         <item quantity="other">Years</item>

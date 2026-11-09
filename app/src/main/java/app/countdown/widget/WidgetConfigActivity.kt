@@ -96,7 +96,7 @@ class WidgetConfigActivity : ComponentActivity() {
                             EventCard(e, numberSize = 34.sp, onClick = {
                                 EventRepository.bindWidget(widgetId, e.id)
                                 WidgetUpdater.updateWidget(this@WidgetConfigActivity, widgetId)
-                                WidgetUpdater.schedule(this@WidgetConfigActivity)
+                                WidgetUpdater.refreshInBackground(this@WidgetConfigActivity)
                                 setResult(Activity.RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
                                 finish()
                             })

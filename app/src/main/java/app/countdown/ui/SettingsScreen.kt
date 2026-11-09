@@ -96,6 +96,9 @@ fun SettingsScreen(onBack: () -> Unit) {
                 SectionTitle(stringResource(R.string.settings_language), Modifier.padding(top = 14.dp))
                 Group { LanguageRow(language) }
 
+                SectionTitle(stringResource(R.string.section_widgets), Modifier.padding(top = 14.dp))
+                Group { WidgetReliability() }
+
                 SectionTitle(stringResource(R.string.section_updates), Modifier.padding(top = 14.dp))
                 Group {
                     Row(
@@ -177,6 +180,57 @@ private fun LanguageRow(current: String) {
                     },
                 )
             }
+        }
+    }
+}
+
+/** Zustand der Akku-Optimierung, aktualisiert sich, wenn man aus den Systemeinstellungen zurückkommt. */
+@Composable
+internal fun rememberBatteryOptimized(): Boolean {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val owner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    var optimized by remember { mutableStateOf(app.countdown.data.Background.isOptimized(context)) }
+    androidx.compose.runtime.DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) optimized = app.countdown.data.Background.isOptimized(context)
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    return optimized
+}
+
+@Composable
+private fun WidgetReliability() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val optimized = rememberBatteryOptimized()
+    Row(
+        Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.battery_title), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                stringResource(if (optimized) R.string.battery_on else R.string.battery_off),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (optimized) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (optimized) {
+            TextButton(onClick = { app.countdown.data.Background.requestUnrestricted(context) }) { Text(stringResource(R.string.battery_action)) }
+        }
+    }
+    if (app.countdown.data.Background.isXiaomi) {
+        HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.autostart_title), style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.autostart_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TextButton(onClick = { app.countdown.data.Background.openAutostart(context) }) { Text(stringResource(R.string.autostart_action)) }
         }
     }
 }

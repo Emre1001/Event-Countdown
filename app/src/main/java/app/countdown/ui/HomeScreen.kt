@@ -97,6 +97,7 @@ fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (Countdo
                     IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, stringResource(R.string.settings)) }
                 }
             }
+            item(key = "battery-hint") { BatteryHint() }
             if (events.isEmpty()) {
                 item {
                     Box(Modifier.emptyStatePadding(), contentAlignment = Alignment.Center) {
@@ -127,3 +128,33 @@ fun HomeScreen(events: List<CountdownEvent>, onAdd: () -> Unit, onOpen: (Countdo
 }
 
 private fun Modifier.emptyStatePadding(): Modifier = this.fillMaxWidth().padding(vertical = 96.dp)
+
+/** Erscheint nur, wenn Widgets auf dem Startbildschirm liegen und Android die App noch drosselt. */
+@Composable
+private fun BatteryHint() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val optimized = rememberBatteryOptimized()
+    val prefs = remember { context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE) }
+    var dismissed by remember { mutableStateOf(prefs.getBoolean("battery_hint_dismissed", false)) }
+    val hasWidgets = remember(optimized) { app.countdown.widget.WidgetUpdater.hasWidgets(context) }
+    androidx.compose.animation.AnimatedVisibility(optimized && hasWidgets && !dismissed) {
+        Group(padding = 16.dp) {
+            Text(stringResource(R.string.widget_stall_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 4.dp))
+            Text(
+                stringResource(R.string.widget_stall_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp),
+            )
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
+                androidx.compose.material3.TextButton(onClick = {
+                    dismissed = true
+                    prefs.edit().putBoolean("battery_hint_dismissed", true).apply()
+                }) { Text(stringResource(R.string.update_later)) }
+                androidx.compose.material3.TextButton(onClick = { app.countdown.data.Background.requestUnrestricted(context) }) {
+                    Text(stringResource(R.string.battery_action))
+                }
+            }
+        }
+    }
+}

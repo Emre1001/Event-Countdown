@@ -186,6 +186,17 @@
     <string name="photo_border">Rand</string>
     <string name="photo_overflow_hint">Fotos dürfen über den Rand hinausragen – zieh sie einfach dorthin.</string>
 
+    <string name="section_widgets">Widgets</string>
+    <string name="battery_title">Akku-Optimierung</string>
+    <string name="battery_on">Aktiv – Widgets können stehen bleiben</string>
+    <string name="battery_off">Aus – Widgets zählen zuverlässig weiter</string>
+    <string name="battery_action">Ausschalten</string>
+    <string name="autostart_title">Autostart (Xiaomi)</string>
+    <string name="autostart_hint">Erlauben, damit das System die App für Widgets starten darf.</string>
+    <string name="autostart_action">Öffnen</string>
+    <string name="widget_stall_title">Bleiben deine Widgets stehen?</string>
+    <string name="widget_stall_body">Dein Handy bremst die App im Hintergrund. Schalte die Akku-Optimierung für Countdown aus, dann zählen Tage, Stunden und Minuten pünktlich weiter.</string>
+
     <plurals name="unit_years">
         <item quantity="one">Jahr</item>
         <item quantity="other">Jahre</item>

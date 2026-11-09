@@ -59,7 +59,7 @@ object AppSettings {
     fun setLanguage(code: String) {
         prefs.edit().putString("language", code).apply()
         _language.value = code
-        WidgetUpdater.updateAll(appContext) // Widgets zeigen ebenfalls die gewählte Sprache
+        WidgetUpdater.refreshInBackground(appContext) // Widgets zeigen ebenfalls die gewählte Sprache
     }
 
     fun setAutoUpdate(value: Boolean) {

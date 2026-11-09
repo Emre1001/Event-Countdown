@@ -89,6 +89,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         UpdateController.onResume()
+        // App geöffnet: Widgets sofort auf den aktuellen Stand bringen und den Alarm neu stellen.
+        WidgetUpdater.refreshInBackground(this)
     }
 
     companion object {
@@ -138,7 +140,7 @@ private fun App(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     fun changed() {
-        WidgetUpdater.updateAll(context)
+        WidgetUpdater.refreshInBackground(context)
         Reminders.schedule(context)
     }
     fun import(uri: Uri) {

@@ -15,6 +15,44 @@ import app.countdown.model.WidgetFormat
 object WidgetUpdater {
     private const val ACTION_TICK = "app.countdown.TICK"
 
+    /** Zeichnen läuft nacheinander auf einem eigenen Thread – nie auf dem Hauptthread eines Receivers. */
+    private val worker = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "widget-render") }
+
+    /** Wann die nächste sichtbare Zahl wechselt (für die Sicherheitsnetze, solange die App läuft). */
+    @Volatile
+    var nextDueAt: Long = Long.MAX_VALUE
+        private set
+
+    /**
+     * Robuster Ablauf für jeden Auslöser (Alarm, System-Update, Bildschirm an, App geöffnet):
+     * 1. den nächsten Alarm SOFORT neu stellen – so reißt die Kette nie ab, selbst wenn das Zeichnen
+     *    abbricht oder Android den Prozess danach einfriert,
+     * 2. im Hintergrund zeichnen (ein Receiver auf dem Hauptthread würde bei langsamer Arbeit beendet),
+     * 3. danach erneut planen und den Broadcast sauber abschließen.
+     */
+    fun refreshInBackground(context: Context, pending: android.content.BroadcastReceiver.PendingResult? = null, then: (() -> Unit)? = null) {
+        val app = context.applicationContext
+        runCatching { schedule(app) }
+        worker.execute {
+            try {
+                updateAll(app)
+                then?.invoke()
+            } catch (_: Throwable) {
+                // Eine fehlgeschlagene Zeichnung darf die nächste Aktualisierung nie verhindern.
+            } finally {
+                runCatching { schedule(app) }
+                pending?.finish()
+            }
+        }
+    }
+
+    fun hasWidgets(context: Context): Boolean {
+        val mgr = AppWidgetManager.getInstance(context)
+        return (providers.map { it.first } + OverviewWidgetProvider::class.java).any {
+            mgr.getAppWidgetIds(ComponentName(context, it)).isNotEmpty()
+        }
+    }
+
     /** Countdown-Widgets mit ihrem Standardformat (die Größe bestimmt das tatsächliche Layout). */
     private val providers = listOf(
         SmallWidgetProvider::class.java to WidgetFormat.SQUARE,
@@ -23,6 +61,7 @@ object WidgetUpdater {
         LargeWidgetProvider::class.java to WidgetFormat.SQUARE,
     )
 
+    @Synchronized
     fun updateWidget(context: Context, widgetId: Int) {
         val mgr = AppWidgetManager.getInstance(context)
         val cls = mgr.getAppWidgetInfo(widgetId)?.provider?.className ?: return
@@ -34,6 +73,7 @@ object WidgetUpdater {
         mgr.updateAppWidget(widgetId, WidgetRenderer.render(context, widgetId, format))
     }
 
+    @Synchronized
     fun updateAll(context: Context) {
         val mgr = AppWidgetManager.getInstance(context)
         providers.forEach { (cls, format) ->
@@ -80,10 +120,12 @@ object WidgetUpdater {
         }
         val next = candidates.minOrNull()
         if (next == null) {
+            nextDueAt = Long.MAX_VALUE
             alarm.cancel(pi)
             return
         }
         val at = maxOf(next + 40, now + 500)
+        nextDueAt = at
         val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarm.canScheduleExactAlarms()
         if (exact) alarm.setExact(AlarmManager.RTC, at, pi) else alarm.setWindow(AlarmManager.RTC, at, 5_000, pi)
     }
